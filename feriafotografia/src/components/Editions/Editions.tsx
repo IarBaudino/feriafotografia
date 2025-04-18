@@ -9,6 +9,7 @@ interface Edition {
   title: string;
   description: string;
   imageUrl: string;
+  location: string;
 }
 
 const editions: Edition[] = [
@@ -17,7 +18,8 @@ const editions: Edition[] = [
     date: "Diciembre 2023",
     title: "9na Edición - PINTA BA PHOTO",
     description: "Feria de publicaciones independientes en el marco de PINTA BA PHOTO.",
-    imageUrl: "/editions/edition-9.jpg"
+    imageUrl: "/editions/edition-9.jpg",
+    location: "Ciudad de México"
   },
   // Agregar más ediciones aquí
 ];
@@ -29,7 +31,7 @@ export default function Editions() {
     <section id="ediciones" className="py-20 px-4 md:px-8 bg-bg-secondary">
       <div className="max-w-4xl mx-auto">
         <motion.h2 
-          className="text-3xl font-bold mb-8 text-bg-primary"
+          className="text-3xl font-bevietnam font-bold mb-8 text-bg-primary"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
@@ -49,7 +51,14 @@ export default function Editions() {
                 className="w-full px-6 py-4 flex justify-between items-center"
                 onClick={() => setSelectedEdition(selectedEdition === edition.id ? null : edition.id)}
               >
-                <span className="font-medium text-text-primary">{edition.date} - {edition.title}</span>
+                <div>
+                  <span className="font-joly italic text-text-primary">
+                    {edition.date}
+                  </span>
+                  <h3 className="font-bevietnam font-bold text-text-primary">
+                    {edition.title}
+                  </h3>
+                </div>
                 <HiChevronDown
                   className={`transform transition-transform ${
                     selectedEdition === edition.id ? 'rotate-180' : ''
@@ -72,7 +81,14 @@ export default function Editions() {
                         className="object-cover w-full h-full rounded"
                       />
                     </div>
-                    <p className="text-text-primary">{edition.description}</p>
+                    <p className="text-text-primary font-bevietnam font-normal">
+                      {edition.description}
+                    </p>
+                    <div className="mt-4">
+                      <span className="text-thin">
+                        Lugar: {edition.location}
+                      </span>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>

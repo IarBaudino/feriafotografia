@@ -6,6 +6,7 @@ import Exhibitions from "@/components/Exibitions/Exhibitions";
 import Team from "@/components/Team/Team";
 import Contact from "@/components/Contact/Contact";
 import SectionDivider from "@/components/ui/SectionDivider";
+import CulturalAgenda from "@/components/CulturalAgenda/CulturalAgenda";
 
 export default function Home() {
   return (
@@ -20,6 +21,8 @@ export default function Home() {
       <SectionDivider fromColor="#f4f3ee" toColor="#3757b1" />
       <Calls />
       <SectionDivider fromColor="#3757b1" toColor="#f4f3ee" />
+      <SectionDivider fromColor="#f4f3ee" toColor="#3757b1" />
+      <CulturalAgenda />
       <Team />
       <SectionDivider fromColor="#f4f3ee" toColor="#3757b1" />
       <Contact />

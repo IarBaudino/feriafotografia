@@ -60,18 +60,23 @@ const teamMembers: TeamMember[] = [
 
 export default function Team() {
   return (
-    <section id="equipo" className="py-20 px-4 md:px-8 bg-bg-primary">
-      <div className="max-w-6xl mx-auto">
-        <motion.h2 
-          className="text-3xl font-bold mb-12 text-bg-secondary text-center"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
+    <section id="equipo" className="section-padding bg-bg-primary">
+      <div className="container-width">
+        <motion.div 
+          className="text-center mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          Nuestro Equipo
-        </motion.h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <h2 className="heading-2 text-bg-secondary font-bevietnam font-bold">
+            Nuestro Equipo
+          </h2>
+          <p className="mt-2 text-text-primary/80 font-bevietnam font-normal">
+            Un grupo apasionado por la fotografía
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {teamMembers.map((member, index) => (
             <motion.div
               key={member.id}
@@ -79,55 +84,59 @@ export default function Team() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
               viewport={{ once: true }}
-              className="bg-white rounded-lg overflow-hidden shadow-lg"
+              className="group relative bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
             >
-              <div className="aspect-square overflow-hidden">
+              <div className="aspect-square relative overflow-hidden">
                 {member.isVideo ? (
-                  <video 
-                    autoPlay 
-                    loop 
-                    muted 
+                  <video
+                    autoPlay
+                    loop
+                    muted
                     playsInline
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   >
                     <source src={member.image} type="video/mp4" />
                   </video>
                 ) : (
-                  <img 
-                    src={member.image} 
+                  <img
+                    src={member.image}
                     alt={member.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />
                 )}
+                <div className="absolute inset-0 bg-gradient-to-t from-bg-secondary/90 via-bg-secondary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
               
-              <div className="p-6">
-                <h3 className="text-xl font-semibold text-bg-secondary">
-                  {member.name}
-                </h3>
-                <p className="text-text-primary mb-4">{member.role}</p>
-                
-                <div className="flex space-x-4">
-                  {member.instagram && (
-                    <a 
-                      href={`https://instagram.com/${member.instagram}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-bg-secondary hover:text-accent-blue transition-colors"
-                    >
-                      <FaInstagram size={24} />
-                    </a>
-                  )}
-                  {member.website && (
-                    <a 
-                      href={member.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-bg-secondary hover:text-accent-blue transition-colors"
-                    >
-                      <FaGlobe size={24} />
-                    </a>
-                  )}
+              <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-8 group-hover:translate-y-0 transition-transform duration-300">
+                <div className="relative z-10">
+                  <h3 className="text-lg font-bevietnam font-bold text-text-primary group-hover:text-bg-primary transition-colors">
+                    {member.name}
+                  </h3>
+                  <p className="text-sm font-bevietnam font-thin italic text-text-primary/90 group-hover:text-bg-primary/90 transition-colors">
+                    {member.role}
+                  </p>
+                  <div className="flex gap-3 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    {member.instagram && (
+                      <a 
+                        href={`https://instagram.com/${member.instagram}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-bg-primary hover:text-accent-blue transition-all duration-300 transform hover:scale-110"
+                      >
+                        <FaInstagram size={18} />
+                      </a>
+                    )}
+                    {member.website && (
+                      <a 
+                        href={member.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-bg-primary hover:text-accent-blue transition-all duration-300 transform hover:scale-110"
+                      >
+                        <FaGlobe size={18} />
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
             </motion.div>

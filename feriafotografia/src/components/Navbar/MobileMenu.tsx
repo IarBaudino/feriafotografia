@@ -1,6 +1,6 @@
-'use client'
-import { motion } from 'framer-motion';
-import Link from 'next/link';
+"use client";
+import { motion } from "framer-motion";
+import Link from "next/link";
 
 interface MobileMenuProps {
   onClose: () => void;
@@ -8,12 +8,13 @@ interface MobileMenuProps {
 
 export default function MobileMenu({ onClose }: MobileMenuProps) {
   const menuItems = [
-    { href: 'about', label: 'Sobre la Feria' },
-    { href: 'ediciones', label: 'Ediciones' },
-    { href: 'exposiciones', label: 'Exposiciones' },
-    { href: 'convocatorias', label: 'Convocatorias' },
-    { href: 'equipo', label: 'Equipo' },
-    { href: 'contacto', label: 'Contacto' },
+    { href: "about", label: "Sobre la Feria" },
+    { href: "ediciones", label: "Ediciones" },
+    { href: "exposiciones", label: "Exposiciones" },
+    { href: "convocatorias", label: "Convocatorias" },
+    { href: "agenda", label: "Agenda Cultural" },
+    { href: "equipo", label: "Equipo" },
+    { href: "contacto", label: "Contacto" },
   ];
 
   return (
@@ -47,7 +48,7 @@ export default function MobileMenu({ onClose }: MobileMenuProps) {
           </div>
         </div>
       </motion.div>
-      
+
       {/* Overlay para cerrar el menú */}
       <motion.div
         className="fixed inset-0 bg-black/20"
@@ -58,4 +59,4 @@ export default function MobileMenu({ onClose }: MobileMenuProps) {
       />
     </motion.div>
   );
-} 
+}
