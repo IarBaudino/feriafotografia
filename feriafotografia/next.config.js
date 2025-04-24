@@ -2,8 +2,11 @@
 const nextConfig = {
   compiler: {
     // Enables the styled-components SWC transform
-    styledComponents: true
-  }
-}
+    styledComponents: true,
+  },
+  images: {
+    domains: ["xzzzyuewieueycfxcqsf.supabase.co"],
+  },
+};
 
-module.exports = nextConfig 
+module.exports = nextConfig;

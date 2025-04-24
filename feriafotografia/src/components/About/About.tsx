@@ -2,11 +2,17 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Masonry from "react-masonry-css";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 interface CollageImage {
   src: string;
   alt: string;
   className: string;
+}
+
+interface AboutData {
+  content: string;
 }
 
 const collageImages: CollageImage[] = [
@@ -55,6 +61,51 @@ const collageImages: CollageImage[] = [
 ];
 
 export default function About() {
+  const [aboutData, setAboutData] = useState<AboutData | null>(null);
+  const [collageImages, setCollageImages] = useState<CollageImage[]>([]);
+
+  useEffect(() => {
+    async function fetchData() {
+      const { data: imagesData, error: imagesError } = await supabase
+        .from("images")
+        .select("*")
+        .eq("section", "about");
+
+      console.log("Supabase images response:", { imagesData, imagesError });
+
+      if (imagesError) {
+        console.error("Error fetching images:", imagesError);
+      } else if (imagesData) {
+        setCollageImages(
+          imagesData.map((img: any) => ({
+            src: img.url,
+            alt: img.alt || "Feria Fotografía",
+            className:
+              "mb-4 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300",
+          }))
+        );
+      }
+    }
+
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    async function fetchAboutData() {
+      const { data, error } = await supabase.from("about").select("*").single();
+
+      console.log("Supabase response:", { data, error });
+
+      if (error) {
+        console.error("Error fetching about data:", error);
+      } else {
+        setAboutData(data);
+      }
+    }
+
+    fetchAboutData();
+  }, []);
+
   const breakpointColumns = {
     default: 3,
     1100: 3,
@@ -134,27 +185,31 @@ export default function About() {
               className="flex -ml-4 w-auto"
               columnClassName="pl-4 bg-clip-padding"
             >
-              {collageImages.map((image, index) => (
-                <motion.div
-                  key={image.src}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                  className={image.className}
-                >
-                  <div className="relative overflow-hidden">
-                    <Image
-                      src={image.src}
-                      alt={image.alt}
-                      width={500}
-                      height={500}
-                      className="w-full h-auto object-cover hover:scale-105 transition-transform duration-500"
-                      sizes="(max-width: 768px) 100vw, 50vw"
-                    />
-                  </div>
-                </motion.div>
-              ))}
+              {collageImages.length > 0 ? (
+                collageImages.map((image, index) => (
+                  <motion.div
+                    key={image.src}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    viewport={{ once: true }}
+                    className={image.className}
+                  >
+                    <div className="relative overflow-hidden">
+                      <Image
+                        src={image.src}
+                        alt={image.alt}
+                        width={500}
+                        height={500}
+                        className="w-full h-auto object-cover hover:scale-105 transition-transform duration-500"
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                      />
+                    </div>
+                  </motion.div>
+                ))
+              ) : (
+                <p>Cargando imágenes...</p>
+              )}
             </Masonry>
           </motion.div>
         </div>

@@ -53,6 +53,12 @@ export default function Footer() {
               >
                 Términos y Condiciones
               </Link>
+              <Link 
+                href="/admin/login"
+                className="text-sm font-bevietnam font-normal text-bg-primary/60 hover:text-accent-blue transition-colors"
+              >
+                Admin
+              </Link>
             </div>
           </div>
         </div>
