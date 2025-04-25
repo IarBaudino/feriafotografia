@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+main {
+  width: 100vw;
+  overflow-x: hidden;
+  position: relative;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --text-primary: #1f1e21;
+  --bg-primary: #f4f3ee;
+  --bg-secondary: #3757b1;
+  --accent-blue: #b2bcdb;
+  --accent-green: #33774f;
+}
+
+@layer base {
+  body {
+    @apply font-bevietnam font-normal;
+  }
+
+  /* Títulos/áreas de comunicados */
+  h1, h2 {
+    @apply font-bevietnam font-bold;
+  }
+
+  /* Subtítulos o información importante */
+  h3, h4 {
+    @apply font-bevietnam font-normal;
+  }
+
+  /* Datos, nombres, lugares */
+  .text-thin {
+    @apply font-bevietnam font-thin italic;
+  }
+
+  /* Textos destacados, fechas */
+  .text-display {
+    @apply font-joly italic;
+  }
+}
+
+@layer components {
+  .section-padding {
+    @apply px-4 py-12 md:px-8 md:py-20;
+  }
+
+  .container-width {
+    @apply w-full max-w-7xl mx-auto;
+  }
+
+  .heading-1 {
+    @apply text-3xl md:text-4xl lg:text-5xl font-bold;
+  }
+
+  .heading-2 {
+    @apply text-2xl md:text-3xl lg:text-4xl font-bold;
+  }
+
+  .body-text {
+    @apply text-base md:text-lg leading-relaxed;
+  }
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Ajustes para dispositivos móviles */
+@media (max-width: 768px) {
+  html {
+    font-size: 14px; /* Reducimos ligeramente el tamaño base de la fuente */
+  }
+
+  .section-padding {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    overflow-x: hidden;
+  }
+}
