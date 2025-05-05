@@ -2,24 +2,24 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { usePathname } from 'next/navigation';
-import Image from 'next/image';
+import { usePathname } from "next/navigation";
+import Image from "next/image";
 import MobileMenu from "./MobileMenu";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
-  const isHomePage = pathname === '/';
+  const isHomePage = pathname === "/";
 
   // Menú principal (home)
-  const homeMenuItems = ['la feria', 'convocatorias', 'equipo', 'contacto'];
-  
+  const homeMenuItems = ["la feria", "convocatorias", "equipo", "contacto"];
+
   // Enlaces a páginas separadas
   const pageLinks = [
-    { name: 'Ediciones', path: '/ediciones' },
-    { name: 'Exposiciones', path: '/exposiciones' },
-    { name: 'Agenda', path: '/agenda' },
+    { name: "Ediciones", path: "/ediciones" },
+    { name: "Exposiciones", path: "/exposiciones" },
+    { name: "Agenda", path: "/culturalAgenda" },
   ];
 
   useEffect(() => {
@@ -56,19 +56,20 @@ export default function Navbar() {
           {/* Menú de escritorio */}
           <div className="hidden md:flex space-x-1 lg:space-x-8">
             {/* Enlaces del home */}
-            {isHomePage && homeMenuItems.map((item) => (
-              <Link
-                key={item}
-                href={`#${item}`}
-                className={`px-3 py-2 rounded-md transition-colors font-bevietnam font-normal ${
-                  isScrolled || !isHomePage
-                    ? "text-text-primary hover:text-bg-secondary"
-                    : "text-bg-primary hover:text-accent-blue"
-                }`}
-              >
-                {item.charAt(0).toUpperCase() + item.slice(1)}
-              </Link>
-            ))}
+            {isHomePage &&
+              homeMenuItems.map((item) => (
+                <Link
+                  key={item}
+                  href={`#${item}`}
+                  className={`px-3 py-2 rounded-md transition-colors font-bevietnam font-normal ${
+                    isScrolled || !isHomePage
+                      ? "text-text-primary hover:text-bg-secondary"
+                      : "text-bg-primary hover:text-accent-blue"
+                  }`}
+                >
+                  {item.charAt(0).toUpperCase() + item.slice(1)}
+                </Link>
+              ))}
 
             {/* Enlaces a páginas separadas */}
             {pageLinks.map((link) => (
@@ -79,7 +80,9 @@ export default function Navbar() {
                   isScrolled || !isHomePage
                     ? "text-text-primary hover:text-bg-secondary"
                     : "text-bg-primary hover:text-accent-blue"
-                } ${pathname === link.path ? "text-bg-secondary font-bold" : ""}`}
+                } ${
+                  pathname === link.path ? "text-bg-secondary font-bold" : ""
+                }`}
               >
                 {link.name}
               </Link>
@@ -89,7 +92,9 @@ export default function Navbar() {
           {/* Botón de menú móvil */}
           <button
             className={`md:hidden p-2 ${
-              isScrolled || !isHomePage ? "text-text-primary" : "text-bg-primary"
+              isScrolled || !isHomePage
+                ? "text-text-primary"
+                : "text-bg-primary"
             }`}
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
@@ -99,8 +104,8 @@ export default function Navbar() {
       </motion.header>
 
       {/* Menú móvil */}
-      <MobileMenu 
-        isOpen={isMobileMenuOpen} 
+      <MobileMenu
+        isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
         homeMenuItems={homeMenuItems}
         pageLinks={pageLinks}

@@ -1,8 +1,8 @@
-'use client'
+"use client";
 import { motion } from "framer-motion";
 import CulturalAgenda from "@/components/CulturalAgenda/CulturalAgenda";
 
-export default function AgendaPage() {
+export default function CulturalAgendaPage() {
   return (
     <main className="pt-20">
       <motion.div
@@ -14,4 +14,4 @@ export default function AgendaPage() {
       </motion.div>
     </main>
   );
-} 
+}

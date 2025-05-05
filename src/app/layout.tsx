@@ -3,28 +3,13 @@ import "./globals.css";
 import Navbar from "@/components/Navbar/Navbar";
 import localFont from "next/font/local";
 import Footer from "@/components/Footer/Footer";
+import { Be_Vietnam_Pro } from "next/font/google";
 
 // Be Vietnam Pro
-const beVietnamPro = localFont({
-  src: [
-    {
-      path: "../../src/fonts/BeVietnamPro/BeVietnamPro-Regular.woff2",
-      weight: "400",
-      style: "normal",
-    },
-    {
-      path: "../../src/fonts/BeVietnamPro/BeVietnamPro-Bold.woff2",
-      weight: "700",
-      style: "normal",
-    },
-    {
-      path: "../../src/fonts/BeVietnamPro/BeVietnamPro-ThinItalic.woff2",
-      weight: "100",
-      style: "italic",
-    },
-  ],
+const beVietnam = Be_Vietnam_Pro({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-bevietnam",
-  display: "swap",
 });
 
 // Joly Display
@@ -48,7 +33,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`scroll-smooth ${beVietnamPro.variable} ${jolyDisplay.variable}`}
+      className={`scroll-smooth ${beVietnam.variable} ${jolyDisplay.variable}`}
     >
       <body className="bg-bg-primary text-text-primary font-bevietnam">
         <Navbar />

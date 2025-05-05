@@ -11,24 +11,32 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
+      console.log("Intentando iniciar sesión con:", email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
+      console.log("Respuesta de auth:", { data, error });
+
       if (error) throw error;
 
-      if (data.user) {
-        router.push("/admin/dashboard");
+      if (data.session) {
+        console.log("Sesión iniciada correctamente");
+        router.replace("/admin/dashboard");
+        router.refresh();
       }
-    } catch (error: any) {
-      setError(error.message);
+    } catch (error) {
+      console.error("Error de inicio de sesión:", error);
+      setError(
+        error instanceof Error ? error.message : "Error al iniciar sesión"
+      );
     } finally {
       setLoading(false);
     }
@@ -47,7 +55,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium mb-1">
               Email
@@ -63,7 +71,10 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium mb-1">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium mb-1"
+            >
               Contraseña
             </label>
             <input
@@ -88,4 +99,4 @@ export default function LoginPage() {
       </div>
     </main>
   );
-} 
+}

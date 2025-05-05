@@ -1,53 +1,116 @@
 "use client";
-import React, { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
+import { HiUsers, HiClock, HiCalendar, HiChartBar } from "react-icons/hi";
+
+interface Stats {
+  daily: number;
+  weekly: number;
+  monthly: number;
+  yearly: number;
+}
 
 export default function DashboardPage() {
-  const router = useRouter();
+  const [stats, setStats] = useState<Stats>({
+    daily: 0,
+    weekly: 0,
+    monthly: 0,
+    yearly: 0,
+  });
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push("/admin/login");
-      }
-    };
+    loadStats();
+  }, []);
 
-    checkUser();
-  }, [router]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/admin/login");
+  const loadStats = async () => {
+    // Aquí cargarías las estadísticas reales desde tu base de datos
+    // Por ahora usamos datos de ejemplo
+    setStats({
+      daily: 145,
+      weekly: 1023,
+      monthly: 4521,
+      yearly: 52480,
+    });
   };
 
+  const statCards = [
+    {
+      title: "Visitas Hoy",
+      value: stats.daily,
+      icon: HiUsers,
+      color: "bg-bg-secondary",
+    },
+    {
+      title: "Esta Semana",
+      value: stats.weekly,
+      icon: HiClock,
+      color: "bg-accent-green",
+    },
+    {
+      title: "Este Mes",
+      value: stats.monthly,
+      icon: HiCalendar,
+      color: "bg-accent-blue",
+    },
+    {
+      title: "Este Año",
+      value: stats.yearly,
+      icon: HiChartBar,
+      color: "bg-text-primary",
+    },
+  ];
+
   return (
-    <main className="min-h-screen p-8 pt-24">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold text-bg-secondary">Dashboard Admin</h1>
-        <button
-          onClick={handleLogout}
-          className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-        >
-          Cerrar Sesión
-        </button>
+    <div className="max-w-6xl mx-auto">
+      <h1 className="text-2xl font-bold text-bg-secondary font-bevietnam mb-6">
+        Panel de Control
+      </h1>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        {statCards.map((card, index) => (
+          <motion.div
+            key={card.title}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+            className={`${card.color} p-4 rounded-lg shadow-sm text-white`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm opacity-80 font-bevietnam">
+                  {card.title}
+                </p>
+                <h2 className="text-xl font-bold mt-1 font-bevietnam">
+                  {card.value.toLocaleString()}
+                </h2>
+              </div>
+              <card.icon className="w-6 h-6 opacity-80" />
+            </div>
+          </motion.div>
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-bold mb-4">Contenido About</h2>
-          <button className="bg-bg-secondary text-white px-4 py-2 rounded hover:bg-opacity-90">
-            Editar About
-          </button>
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="bg-white p-5 rounded-lg shadow-sm">
+          <h2 className="text-lg font-bold mb-4 text-bg-secondary">
+            Actividad Reciente
+          </h2>
+          <div className="h-40 flex items-center justify-center text-gray-400">
+            Contenido próximamente
+          </div>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-bold mb-4">Agenda Cultural</h2>
-          <button className="bg-bg-secondary text-white px-4 py-2 rounded hover:bg-opacity-90">
-            Gestionar Eventos
-          </button>
+        <div className="bg-white p-5 rounded-lg shadow-sm">
+          <h2 className="text-lg font-bold mb-4 text-bg-secondary">
+            Estadísticas Generales
+          </h2>
+          <div className="h-40 flex items-center justify-center text-gray-400">
+            Contenido próximamente
+          </div>
         </div>
       </div>
-    </main>
+    </div>
   );
-} 
+}
