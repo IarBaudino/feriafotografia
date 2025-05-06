@@ -1,27 +1,18 @@
 import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import "react-quill/dist/quill.snow.css";
-import type { ReactQuillProps } from "react-quill";
 
-// Definimos el tipo para nuestro componente dinámico
-const QuillNoSSRWrapper = dynamic(
+const ReactQuill = dynamic(
   async () => {
     const { default: RQ } = await import("react-quill");
     const { default: Quill } = await import("quill");
 
     // Configurar las fuentes personalizadas
     const Font = Quill.import("formats/font");
-    Font.whitelist = ["bevietnam", "joly", "sans-serif", "serif", "monospace"];
+    Font.whitelist = ["bevietnam", "joly"];
     Quill.register(Font, true);
 
-    // Agregar los selectores de fuentes
-    const icons = Quill.import("ui/icons");
-    icons["bevietnam"] = "Be Vietnam Pro";
-    icons["joly"] = "Joly Display";
-
-    return function Component(props: ReactQuillProps) {
-      return <RQ {...props} />;
-    };
+    return RQ;
   },
   { ssr: false }
 );
@@ -32,6 +23,16 @@ interface CustomQuillEditorProps {
   className?: string;
 }
 
+// Agregar estilos globales para la vista previa
+const previewStyles = `
+  .ql-font-bevietnam {
+    font-family: var(--font-bevietnam) !important;
+  }
+  .ql-font-joly {
+    font-family: var(--font-joly) !important;
+  }
+`;
+
 export default function CustomQuillEditor({
   value,
   onChange,
@@ -41,17 +42,12 @@ export default function CustomQuillEditor({
     () => ({
       toolbar: {
         container: [
-          [
-            {
-              font: ["bevietnam", "joly", "sans-serif", "serif", "monospace"],
-            },
-          ],
-          [{ header: [1, 2, 3, 4, 5, 6, false] }],
-          ["bold", "italic", "underline", "strike"],
-          [{ color: [] }, { background: [] }],
-          [{ list: "ordered" }, { list: "bullet" }],
+          [{ font: ["bevietnam", "joly"] }],
+          [{ header: [1, 2, 3, false] }],
+          ["bold", "italic", "underline"],
+          [{ color: [] }],
           [{ align: [] }],
-          ["link", "image", "clean"],
+          ["link"],
         ],
       },
     }),
@@ -64,79 +60,55 @@ export default function CustomQuillEditor({
     "bold",
     "italic",
     "underline",
-    "strike",
     "color",
-    "background",
-    "list",
-    "bullet",
     "align",
     "link",
-    "image",
   ];
+
+  // Agregar estilos para la vista previa
+  useMemo(() => {
+    if (typeof window !== "undefined") {
+      const style = document.createElement("style");
+      style.innerHTML = previewStyles;
+      document.head.appendChild(style);
+      return () => document.head.removeChild(style);
+    }
+  }, []);
 
   return (
     <>
       <style jsx global>{`
+        /* Estilos base del editor */
         .ql-editor {
           font-family: var(--font-bevietnam);
         }
 
-        /* Estilos para el selector de fuentes */
-        .ql-snow .ql-picker.ql-font {
-          font-family: var(--font-bevietnam);
-        }
-
-        /* Estilos para las opciones del selector */
-        .ql-snow .ql-picker.ql-font .ql-picker-label::before,
-        .ql-snow .ql-picker.ql-font .ql-picker-item::before {
-          content: attr(data-value) !important;
-        }
-
-        /* Estilos específicos para cada fuente en el selector */
-        .ql-font-bevietnam,
-        .ql-snow
-          .ql-picker.ql-font
-          .ql-picker-label[data-value="bevietnam"]::before,
-        .ql-snow
-          .ql-picker.ql-font
-          .ql-picker-item[data-value="bevietnam"]::before {
-          font-family: var(--font-bevietnam) !important;
-          content: "Be Vietnam Pro" !important;
-        }
-
-        .ql-font-joly,
-        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="joly"]::before,
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="joly"]::before {
-          font-family: var(--font-joly) !important;
-          content: "Joly Display" !important;
-        }
-
-        /* Estilos para los encabezados */
-        .ql-editor h1,
-        .ql-editor h2,
-        .ql-editor h3 {
-          font-family: var(--font-bevietnam);
-          color: #1f2937;
-        }
-
-        /* Estilos para el texto con cada fuente */
+        /* Estilos para las fuentes en el selector */
         .ql-font-bevietnam {
           font-family: var(--font-bevietnam) !important;
         }
         .ql-font-joly {
           font-family: var(--font-joly) !important;
         }
-        .ql-font-serif {
-          font-family: serif !important;
+
+        /* Nombres en el selector de fuentes */
+        .ql-snow
+          .ql-picker.ql-font
+          .ql-picker-label[data-value="bevietnam"]::before,
+        .ql-snow
+          .ql-picker.ql-font
+          .ql-picker-item[data-value="bevietnam"]::before {
+          content: "Be Vietnam Pro" !important;
+          font-family: var(--font-bevietnam);
         }
-        .ql-font-sans-serif {
-          font-family: sans-serif !important;
-        }
-        .ql-font-monospace {
-          font-family: monospace !important;
+
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="joly"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="joly"]::before {
+          content: "Joly Display" !important;
+          font-family: var(--font-joly);
         }
       `}</style>
-      <QuillNoSSRWrapper
+      <ReactQuill
         theme="snow"
         modules={modules}
         formats={formats}

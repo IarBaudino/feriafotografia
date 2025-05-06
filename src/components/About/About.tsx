@@ -63,6 +63,16 @@ const collageImages: CollageImage[] = [
   },
 ];
 
+// Agregar estilos globales para las fuentes
+const fontStyles = `
+  .ql-font-bevietnam {
+    font-family: var(--font-bevietnam) !important;
+  }
+  .ql-font-joly {
+    font-family: var(--font-joly) !important;
+  }
+`;
+
 export default function About() {
   const [aboutData, setAboutData] = useState<AboutData | null>(null);
   const [collageImages, setCollageImages] = useState<CollageImage[]>([]);
@@ -105,6 +115,13 @@ export default function About() {
     }
 
     fetchData();
+  }, []);
+
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.innerHTML = fontStyles;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
   }, []);
 
   const breakpointColumns = {
