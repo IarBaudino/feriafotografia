@@ -2,64 +2,39 @@
 import { motion } from "framer-motion";
 import { FaInstagram, FaGlobe } from "react-icons/fa";
 import Masonry from "react-masonry-css";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 interface TeamMember {
-  id: number;
+  id: string;
   name: string;
   role: string;
-  image: string;
+  image_url: string;
   instagram?: string;
   website?: string;
-  isVideo?: boolean;
+  created_at?: string;
 }
 
-const teamMembers: TeamMember[] = [
-  {
-    id: 1,
-    name: "Agus",
-    role: "Coordinación",
-    image: "/team/agus.jpg",
-    instagram: "agus_instagram",
-  },
-  {
-    id: 2,
-    name: "Savia",
-    role: "Video",
-    image: "/team/savia.mp4",
-    instagram: "savia_instagram",
-    isVideo: true,
-  },
-  {
-    id: 3,
-    name: "Cata",
-    role: "Fotógrafa",
-    image: "/team/cata.jpg",
-    instagram: "cata_instagram",
-  },
-  {
-    id: 4,
-    name: "Coti",
-    role: "Diseñadora",
-    image: "/team/coti.jpg",
-    instagram: "coti_instagram",
-  },
-  {
-    id: 5,
-    name: "Iara",
-    role: "Desarrolladora Web",
-    image: "/team/iara.jpg",
-    instagram: "iara_instagram",
-  },
-  {
-    id: 6,
-    name: "Cande",
-    role: "Creadora de Contenido",
-    image: "/team/cande.jpg",
-    instagram: "cande_instagram",
-  },
-];
-
 export default function Team() {
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadTeamMembers = async () => {
+      const { data } = await supabase
+        .from("team_members")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+      if (data) setTeamMembers(data);
+      setIsLoading(false);
+    };
+
+    loadTeamMembers();
+  }, []);
+
+  if (isLoading) return null;
+
   const breakpointColumns = {
     default: 3,
     1100: 3,
@@ -100,23 +75,11 @@ export default function Team() {
                 className="mb-4 group relative bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
               >
                 <div className="aspect-[3/4] relative overflow-hidden">
-                  {member.isVideo ? (
-                    <video
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    >
-                      <source src={member.image} type="video/mp4" />
-                    </video>
-                  ) : (
-                    <img
-                      src={member.image}
-                      alt={member.name}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                  )}
+                  <img
+                    src={member.image_url}
+                    alt={member.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-bg-secondary/90 via-bg-secondary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
 
