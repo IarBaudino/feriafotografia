@@ -63,6 +63,17 @@ const collageImages: CollageImage[] = [
   },
 ];
 
+// Imágenes por defecto como fallback
+const defaultCollageImages: CollageImage[] = [
+  {
+    src: "/imagenes/image1.jpg",
+    alt: "Feria Fotografía - Ambiente",
+    className:
+      "mb-4 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300",
+  },
+  // ... resto de las imágenes por defecto ...
+];
+
 // Agregar estilos globales para las fuentes
 const fontStyles = `
   .ql-font-bevietnam {
@@ -86,31 +97,42 @@ export default function About() {
           .select("*")
           .single();
 
-        if (aboutError) throw aboutError;
-        if (aboutData) {
-          setAboutData(aboutData);
+        if (aboutError) {
+          console.error("Error fetching about data:", aboutError);
+          return;
         }
 
         // Obtener imágenes
         const { data: imagesData, error: imagesError } = await supabase
           .from("images")
           .select("*")
-          .eq("section", "about")
-          .order("created_at", { ascending: true });
+          .eq("section", "about");
 
-        if (imagesError) throw imagesError;
-        if (imagesData) {
-          setCollageImages(
-            imagesData.map((img) => ({
-              src: img.url,
-              alt: img.alt || "Feria Fotografía",
-              className:
-                "mb-4 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300",
-            }))
-          );
+        if (imagesError) {
+          console.error("Error fetching images:", imagesError);
+          return;
+        }
+
+        // Si no hay datos, usar las imágenes por defecto
+        if (!imagesData || imagesData.length === 0) {
+          setCollageImages(defaultCollageImages);
+        } else {
+          const formattedImages = imagesData.map((img) => ({
+            src: img.url,
+            alt: img.alt || "Feria Fotografía",
+            className:
+              "mb-4 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300",
+          }));
+          setCollageImages(formattedImages);
+        }
+
+        if (aboutData) {
+          setAboutData(aboutData);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
+        // En caso de error, usar las imágenes por defecto
+        setCollageImages(defaultCollageImages);
       }
     }
 
