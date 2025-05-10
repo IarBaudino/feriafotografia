@@ -5,8 +5,7 @@ import { motion } from "framer-motion";
 interface SidebarItem {
   id: string;
   title: string;
-  year?: string;
-  description?: string;
+  year: string;
 }
 
 interface SidebarSection {
@@ -56,37 +55,27 @@ export default function PublicSidebar({
           <div className="flex-1 overflow-y-auto py-4">
             <nav className="px-4 space-y-6">
               {sections.map((section) => (
-                <div key={section.title}>
-                  <h2 className="text-lg font-joly italic text-accent-blue mb-3">
+                <div key={section.title} className="mb-8">
+                  <h2 className="text-lg font-bold text-bg-secondary mb-4">
                     {section.title}
                   </h2>
                   <div className="space-y-2">
                     {section.items.map((item) => (
                       <button
                         key={item.id}
-                        onClick={() => {
-                          onSelect(item.id);
-                          setIsMobileOpen(false);
-                        }}
-                        className={`w-full text-left p-4 rounded-lg transition-all duration-300 ${
+                        onClick={() => onSelect(item.id)}
+                        className={`w-full text-left p-3 rounded-lg transition-colors ${
                           currentId === item.id
-                            ? "bg-accent-blue/20 border border-accent-blue/30"
-                            : "text-white hover:bg-white/5 border border-transparent"
+                            ? "bg-accent-blue/10 text-accent-blue"
+                            : "hover:bg-white/5 text-text-primary"
                         }`}
                       >
-                        <div className="font-bevietnam font-bold text-white">
-                          {item.title}
-                        </div>
-                        {item.year && (
-                          <div className="font-joly italic text-accent-blue text-sm mt-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bevietnam">{item.title}</span>
+                          <span className="text-sm opacity-60">
                             {item.year}
-                          </div>
-                        )}
-                        {item.description && (
-                          <p className="font-bevietnam text-xs text-white/70 mt-2">
-                            {item.description}
-                          </p>
-                        )}
+                          </span>
+                        </div>
                       </button>
                     ))}
                   </div>
@@ -104,4 +93,4 @@ export default function PublicSidebar({
       </aside>
     </>
   );
-} 
+}

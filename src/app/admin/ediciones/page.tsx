@@ -31,6 +31,13 @@ interface Edicion {
   visitors: number;
 }
 
+interface EdicionImage {
+  id: string;
+  url: string;
+  alt: string;
+  section_id: string;
+}
+
 interface PreviewModalProps {
   edicion: Edicion;
   isOpen: boolean;
@@ -107,18 +114,50 @@ export default function EdicionesAdminPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [edicionImages, setEdicionImages] = useState<
+    Record<string, EdicionImage[]>
+  >({});
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
 
   useEffect(() => {
     loadEdiciones();
   }, []);
 
   const loadEdiciones = async () => {
-    const { data, error } = await supabase
-      .from("editions")
-      .select("*")
-      .order("date", { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from("editions")
+        .select("*")
+        .order("date", { ascending: false });
 
-    if (data) setEdiciones(data);
+      if (error) throw error;
+
+      if (data) {
+        setEdiciones(data);
+
+        // Cargar imágenes
+        const { data: imagesData, error: imagesError } = await supabase
+          .from("images")
+          .select("*")
+          .eq("section", "editions");
+
+        if (imagesError) throw imagesError;
+
+        if (imagesData) {
+          const imagesByEdition = imagesData.reduce((acc, img) => {
+            if (!acc[img.section_id]) {
+              acc[img.section_id] = [];
+            }
+            acc[img.section_id].push(img);
+            return acc;
+          }, {} as Record<string, EdicionImage[]>);
+
+          setEdicionImages(imagesByEdition);
+        }
+      }
+    } catch (error) {
+      console.error("Error cargando ediciones:", error);
+    }
   };
 
   const handleSave = async () => {
@@ -152,6 +191,102 @@ export default function EdicionesAdminPage() {
       alert("Error al guardar los cambios");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !currentEdicion) return;
+
+    setIsUploadingImages(true);
+    try {
+      console.log("Iniciando subida de imágenes...");
+      const files = Array.from(e.target.files);
+      const uploadPromises = files.map(async (file) => {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
+        const filePath = `editions/${currentEdicion.id}/${fileName}`;
+
+        console.log("Subiendo archivo:", filePath);
+        const { error: uploadError } = await supabase.storage
+          .from("images")
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("images").getPublicUrl(filePath);
+
+        console.log("URL pública generada:", publicUrl);
+
+        // Guardar referencia en la tabla images
+        const { data: imageData, error: imageError } = await supabase
+          .from("images")
+          .insert({
+            url: publicUrl,
+            alt: `Imagen de ${currentEdicion.title}`,
+            section: "editions",
+            section_id: currentEdicion.id,
+          })
+          .select()
+          .single();
+
+        if (imageError) throw imageError;
+        console.log("Imagen guardada en BD:", imageData);
+        return imageData;
+      });
+
+      const newImages = await Promise.all(uploadPromises);
+      console.log("Todas las imágenes subidas:", newImages);
+
+      setEdicionImages((prev) => ({
+        ...prev,
+        [currentEdicion.id]: [...(prev[currentEdicion.id] || []), ...newImages],
+      }));
+
+      setHasUnsavedChanges(true);
+    } catch (error) {
+      console.error("Error subiendo imágenes:", error);
+      alert("Error al subir las imágenes");
+    } finally {
+      setIsUploadingImages(false);
+    }
+  };
+
+  const handleImageDelete = async (img: EdicionImage) => {
+    if (!currentEdicion) return;
+
+    try {
+      // Eliminar el archivo del storage
+      const fileName = img.url.split("/").pop();
+      if (fileName) {
+        const { error: storageError } = await supabase.storage
+          .from("images")
+          .remove([`editions/${currentEdicion.id}/${fileName}`]);
+
+        if (storageError) throw storageError;
+      }
+
+      // Eliminar el registro de la base de datos
+      const { error: dbError } = await supabase
+        .from("images")
+        .delete()
+        .eq("id", img.id);
+
+      if (dbError) throw dbError;
+
+      // Actualizar el estado local
+      setEdicionImages((prev) => ({
+        ...prev,
+        [currentEdicion.id]: prev[currentEdicion.id].filter(
+          (image) => image.section_id !== img.section_id
+        ),
+      }));
+
+      setHasUnsavedChanges(true);
+    } catch (error) {
+      console.error("Error eliminando imagen:", error);
+      alert("Error al eliminar la imagen");
     }
   };
 
@@ -277,6 +412,40 @@ export default function EdicionesAdminPage() {
                 rows={4}
                 className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
               />
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium mb-2">Imágenes</label>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleImageUpload}
+                disabled={isUploadingImages}
+                className="w-full p-2 border rounded"
+              />
+
+              {/* Mostrar imágenes existentes */}
+              {currentEdicion &&
+                edicionImages[currentEdicion.id]?.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                    {edicionImages[currentEdicion.id].map((img) => (
+                      <div key={img.id} className="relative group">
+                        <img
+                          src={img.url}
+                          alt={img.alt}
+                          className="w-full h-40 object-cover rounded-lg"
+                        />
+                        <button
+                          onClick={() => handleImageDelete(img)}
+                          className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <HiTrash className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
             </div>
 
             <div className="flex justify-end gap-4 mt-6">
