@@ -113,7 +113,6 @@ export default function EdicionesAdminPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [edicionImages, setEdicionImages] = useState<
     Record<string, EdicionImage[]>
   >({});
@@ -292,246 +291,229 @@ export default function EdicionesAdminPage() {
 
   return (
     <AuthCheck>
-      <div className="max-w-6xl mx-auto pt-20 px-6">
-        {!isEditing ? (
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-bg-secondary font-bevietnam">
-              Gestionar Ediciones
+      <div className="min-h-screen bg-bg-primary">
+        <div className="container mx-auto px-6 py-8">
+          <div className="flex justify-between items-center mb-8 pt-8">
+            <h1 className="text-3xl font-bevietnam font-bold text-bg-secondary">
+              Administrar Ediciones
             </h1>
             <button
               onClick={() => {
                 setCurrentEdicion(EMPTY_EDICION);
                 setIsEditing(true);
               }}
-              className="bg-accent-green text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-accent-green/90 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-accent-blue text-white rounded-lg hover:bg-opacity-90"
             >
               <HiPlus className="w-5 h-5" />
               Nueva Edición
             </button>
           </div>
-        ) : (
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">Título</label>
-              <input
-                type="text"
-                value={currentEdicion?.title || ""}
-                onChange={(e) => {
-                  setCurrentEdicion((prev) =>
-                    prev ? { ...prev, title: e.target.value } : null
-                  );
-                  setHasUnsavedChanges(true);
-                }}
-                className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
-              />
-            </div>
 
-            <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">Fecha</label>
-              <input
-                type="datetime-local"
-                value={currentEdicion?.date || ""}
-                onChange={(e) => {
-                  setCurrentEdicion((prev) =>
-                    prev ? { ...prev, date: e.target.value } : null
-                  );
-                  setHasUnsavedChanges(true);
-                }}
-                className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
-              />
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">
-                Ubicación
-              </label>
-              <input
-                type="text"
-                value={currentEdicion?.location || ""}
-                onChange={(e) => {
-                  setCurrentEdicion((prev) =>
-                    prev ? { ...prev, location: e.target.value } : null
-                  );
-                  setHasUnsavedChanges(true);
-                }}
-                className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Participantes
-                </label>
+          {isEditing && currentEdicion ? (
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-2">Título</label>
                 <input
-                  type="number"
-                  value={currentEdicion?.participants || 0}
+                  type="text"
+                  value={currentEdicion?.title || ""}
                   onChange={(e) => {
                     setCurrentEdicion((prev) =>
-                      prev
-                        ? { ...prev, participants: Number(e.target.value) }
-                        : null
+                      prev ? { ...prev, title: e.target.value } : null
                     );
                     setHasUnsavedChanges(true);
                   }}
                   className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Visitantes
-                </label>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-2">Fecha</label>
                 <input
-                  type="number"
-                  value={currentEdicion?.visitors || 0}
+                  type="datetime-local"
+                  value={currentEdicion?.date || ""}
                   onChange={(e) => {
                     setCurrentEdicion((prev) =>
-                      prev
-                        ? { ...prev, visitors: Number(e.target.value) }
-                        : null
+                      prev ? { ...prev, date: e.target.value } : null
                     );
                     setHasUnsavedChanges(true);
                   }}
                   className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
                 />
               </div>
-            </div>
 
-            <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">
-                Descripción
-              </label>
-              <textarea
-                value={currentEdicion?.description || ""}
-                onChange={(e) => {
-                  setCurrentEdicion((prev) =>
-                    prev ? { ...prev, description: e.target.value } : null
-                  );
-                  setHasUnsavedChanges(true);
-                }}
-                rows={4}
-                className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
-              />
-            </div>
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-2">
+                  Ubicación
+                </label>
+                <input
+                  type="text"
+                  value={currentEdicion?.location || ""}
+                  onChange={(e) => {
+                    setCurrentEdicion((prev) =>
+                      prev ? { ...prev, location: e.target.value } : null
+                    );
+                    setHasUnsavedChanges(true);
+                  }}
+                  className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
+                />
+              </div>
 
-            <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">Imágenes</label>
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handleImageUpload}
-                disabled={isUploadingImages}
-                className="w-full p-2 border rounded"
-              />
-
-              {/* Mostrar imágenes existentes */}
-              {currentEdicion &&
-                edicionImages[currentEdicion.id]?.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                    {edicionImages[currentEdicion.id].map((img) => (
-                      <div key={img.id} className="relative group">
-                        <img
-                          src={img.url}
-                          alt={img.alt}
-                          className="w-full h-40 object-cover rounded-lg"
-                        />
-                        <button
-                          onClick={() => handleImageDelete(img)}
-                          className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <HiTrash className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-            </div>
-
-            <div className="flex justify-end gap-4 mt-6">
-              <button
-                onClick={() => setIsEditing(false)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={isSaving || !hasUnsavedChanges}
-                className={`flex items-center gap-2 px-6 py-2 rounded-lg ${
-                  hasUnsavedChanges
-                    ? "bg-accent-green text-white hover:bg-opacity-90"
-                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                }`}
-              >
-                <HiSave className="w-5 h-5" />
-                {isSaving ? "Guardando..." : "Guardar Cambios"}
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-          {ediciones.map((edicion) => (
-            <motion.div
-              key={edicion.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl overflow-hidden shadow-lg"
-            >
-              <div className="p-6">
-                <h3 className="text-xl font-bold text-bg-secondary font-bevietnam mb-2">
-                  {edicion.title}
-                </h3>
-                <p className="text-sm text-accent-blue font-joly mb-4">
-                  {new Date(edicion.date).toLocaleDateString()}
-                </p>
-                <p className="text-sm text-text-primary/80 mb-4 line-clamp-2">
-                  {edicion.description}
-                </p>
-                <div className="flex justify-end gap-2">
-                  <button
-                    onClick={() => {
-                      setCurrentEdicion(edicion);
-                      setIsPreviewOpen(true);
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Participantes
+                  </label>
+                  <input
+                    type="number"
+                    value={currentEdicion?.participants || 0}
+                    onChange={(e) => {
+                      setCurrentEdicion((prev) =>
+                        prev
+                          ? { ...prev, participants: Number(e.target.value) }
+                          : null
+                      );
+                      setHasUnsavedChanges(true);
                     }}
-                    className="p-2 text-accent-green hover:bg-accent-green/10 rounded-lg transition-colors"
-                  >
-                    <HiEye className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      setCurrentEdicion(edicion);
-                      setIsEditing(true);
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Visitantes
+                  </label>
+                  <input
+                    type="number"
+                    value={currentEdicion?.visitors || 0}
+                    onChange={(e) => {
+                      setCurrentEdicion((prev) =>
+                        prev
+                          ? { ...prev, visitors: Number(e.target.value) }
+                          : null
+                      );
+                      setHasUnsavedChanges(true);
                     }}
-                    className="p-2 text-accent-blue hover:bg-accent-blue/10 rounded-lg transition-colors"
-                  >
-                    <HiPencil className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      /* Confirmar y eliminar */
-                    }}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    <HiTrash className="w-5 h-5" />
-                  </button>
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
+                  />
                 </div>
               </div>
-            </motion.div>
-          ))}
-        </div>
 
-        {currentEdicion && (
-          <PreviewModal
-            edicion={currentEdicion}
-            isOpen={isPreviewOpen}
-            onClose={() => {
-              setIsPreviewOpen(false);
-              setCurrentEdicion(null);
-            }}
-          />
-        )}
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-2">
+                  Descripción
+                </label>
+                <textarea
+                  value={currentEdicion?.description || ""}
+                  onChange={(e) => {
+                    setCurrentEdicion((prev) =>
+                      prev ? { ...prev, description: e.target.value } : null
+                    );
+                    setHasUnsavedChanges(true);
+                  }}
+                  rows={4}
+                  className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
+                />
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-2">
+                  Imágenes
+                </label>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={isUploadingImages}
+                  className="w-full p-2 border rounded"
+                />
+
+                {/* Mostrar imágenes existentes */}
+                {currentEdicion &&
+                  edicionImages[currentEdicion.id]?.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                      {edicionImages[currentEdicion.id].map((img) => (
+                        <div key={img.id} className="relative group">
+                          <img
+                            src={img.url}
+                            alt={img.alt}
+                            className="w-full h-40 object-cover rounded-lg"
+                          />
+                          <button
+                            onClick={() => handleImageDelete(img)}
+                            className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <HiTrash className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+              </div>
+
+              <div className="flex justify-end gap-4 mt-6">
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving || !hasUnsavedChanges}
+                  className={`flex items-center gap-2 px-6 py-2 rounded-lg ${
+                    hasUnsavedChanges
+                      ? "bg-accent-green text-white hover:bg-opacity-90"
+                      : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                  }`}
+                >
+                  <HiSave className="w-5 h-5" />
+                  {isSaving ? "Guardando..." : "Guardar Cambios"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {ediciones.map((edicion) => (
+                <motion.div
+                  key={edicion.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white rounded-xl overflow-hidden shadow-lg"
+                >
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-bg-secondary font-bevietnam mb-2">
+                      {edicion.title}
+                    </h3>
+                    <p className="text-sm text-accent-blue font-joly mb-4">
+                      {new Date(edicion.date).toLocaleDateString()}
+                    </p>
+                    <p className="text-sm text-text-primary/80 mb-4 line-clamp-2">
+                      {edicion.description}
+                    </p>
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => {
+                          setCurrentEdicion(edicion);
+                        }}
+                        className="p-2 text-accent-blue hover:bg-accent-blue/10 rounded-lg transition-colors"
+                      >
+                        <HiPencil className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          /* Confirmar y eliminar */
+                        }}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <HiTrash className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </AuthCheck>
   );
