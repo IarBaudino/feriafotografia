@@ -240,9 +240,12 @@ export default function CallsPage() {
                 <h3 className="text-2xl font-bevietnam font-bold mb-4 text-bg-secondary">
                   {content.title}
                 </h3>
-                <p className="text-text-primary font-bevietnam font-normal mb-6">
-                  {content.description}
-                </p>
+                <div
+                  className="text-text-primary font-bevietnam font-normal mb-6"
+                  dangerouslySetInnerHTML={{
+                    __html: content.description,
+                  }}
+                />
                 <div className="space-y-4">
                   <p className="font-bevietnam font-thin italic">
                     Fecha límite:{" "}

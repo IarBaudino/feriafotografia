@@ -57,9 +57,12 @@ function PreviewModal({ edicion, isOpen, onClose }: PreviewModalProps) {
             </p>
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <p className="text-lg font-bevietnam text-text-primary/80 leading-relaxed">
-                  {edicion.description}
-                </p>
+                <div
+                  className="text-lg font-bevietnam text-text-primary/80 leading-relaxed"
+                  dangerouslySetInnerHTML={{
+                    __html: edicion.description,
+                  }}
+                />
               </div>
               <div>
                 <p className="text-lg font-bevietnam">
@@ -86,7 +89,7 @@ function PreviewModal({ edicion, isOpen, onClose }: PreviewModalProps) {
 const EMPTY_EDICION: Edicion = {
   id: "",
   title: "",
-  date: "",
+  date: new Date().toISOString().split("T")[0],
   description: "",
   location: "",
   participants: 0,
@@ -242,7 +245,9 @@ export default function EdicionesAdminPage() {
           .from("editions")
           .insert({
             title: currentEdicion.title,
-            date: currentEdicion.date,
+            date: currentEdicion.date
+              ? new Date(currentEdicion.date).toISOString()
+              : null,
             description: currentEdicion.description,
             location: currentEdicion.location,
             participants: currentEdicion.participants,
@@ -259,7 +264,9 @@ export default function EdicionesAdminPage() {
           .from("editions")
           .update({
             title: currentEdicion.title,
-            date: currentEdicion.date,
+            date: currentEdicion.date
+              ? new Date(currentEdicion.date).toISOString()
+              : null,
             description: currentEdicion.description,
             location: currentEdicion.location,
             participants: currentEdicion.participants,
@@ -391,84 +398,30 @@ export default function EdicionesAdminPage() {
           </div>
 
           {isEditing && currentEdicion ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-lg shadow-lg p-8"
-            >
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Formulario */}
-                <div className="space-y-6">
-                  <h2 className="text-2xl font-bold text-bg-secondary font-bevietnam">
-                    {currentEdicion.id ? "Editar Edición" : "Nueva Edición"}
-                  </h2>
+            <>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-lg shadow-lg p-8"
+              >
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Formulario */}
+                  <div className="space-y-6">
+                    <h2 className="text-2xl font-bold text-bg-secondary font-bevietnam">
+                      {currentEdicion.id ? "Editar Edición" : "Nueva Edición"}
+                    </h2>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Título
-                    </label>
-                    <input
-                      type="text"
-                      value={currentEdicion.title}
-                      onChange={(e) => {
-                        setCurrentEdicion({
-                          ...currentEdicion,
-                          title: e.target.value,
-                        });
-                        setHasUnsavedChanges(true);
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-accent-blue"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Fecha
-                    </label>
-                    <input
-                      type="text"
-                      value={currentEdicion.date}
-                      onChange={(e) => {
-                        setCurrentEdicion({
-                          ...currentEdicion,
-                          date: e.target.value,
-                        });
-                        setHasUnsavedChanges(true);
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-accent-blue"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Ubicación
-                    </label>
-                    <input
-                      type="text"
-                      value={currentEdicion.location}
-                      onChange={(e) => {
-                        setCurrentEdicion({
-                          ...currentEdicion,
-                          location: e.target.value,
-                        });
-                        setHasUnsavedChanges(true);
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-accent-blue"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Participantes
+                        Título
                       </label>
                       <input
-                        type="number"
-                        value={currentEdicion.participants}
+                        type="text"
+                        value={currentEdicion.title}
                         onChange={(e) => {
                           setCurrentEdicion({
                             ...currentEdicion,
-                            participants: parseInt(e.target.value) || 0,
+                            title: e.target.value,
                           });
                           setHasUnsavedChanges(true);
                         }}
@@ -478,125 +431,255 @@ export default function EdicionesAdminPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Visitantes
+                        Fecha
                       </label>
                       <input
-                        type="number"
-                        value={currentEdicion.visitors}
+                        type="date"
+                        value={
+                          currentEdicion.date
+                            ? new Date(currentEdicion.date)
+                                .toISOString()
+                                .split("T")[0]
+                            : ""
+                        }
                         onChange={(e) => {
                           setCurrentEdicion({
                             ...currentEdicion,
-                            visitors: parseInt(e.target.value) || 0,
+                            date: e.target.value,
                           });
                           setHasUnsavedChanges(true);
                         }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-accent-blue"
                       />
                     </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Ubicación
+                      </label>
+                      <input
+                        type="text"
+                        value={currentEdicion.location}
+                        onChange={(e) => {
+                          setCurrentEdicion({
+                            ...currentEdicion,
+                            location: e.target.value,
+                          });
+                          setHasUnsavedChanges(true);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-accent-blue"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Participantes
+                        </label>
+                        <input
+                          type="number"
+                          value={currentEdicion.participants}
+                          onChange={(e) => {
+                            setCurrentEdicion({
+                              ...currentEdicion,
+                              participants: parseInt(e.target.value) || 0,
+                            });
+                            setHasUnsavedChanges(true);
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-accent-blue"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Visitantes
+                        </label>
+                        <input
+                          type="number"
+                          value={currentEdicion.visitors}
+                          onChange={(e) => {
+                            setCurrentEdicion({
+                              ...currentEdicion,
+                              visitors: parseInt(e.target.value) || 0,
+                            });
+                            setHasUnsavedChanges(true);
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-accent-blue"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Descripción
+                      </label>
+                      <CustomQuillEditor
+                        value={currentEdicion.description}
+                        onChange={(value) => {
+                          setCurrentEdicion({
+                            ...currentEdicion,
+                            description: value,
+                          });
+                          setHasUnsavedChanges(true);
+                        }}
+                      />
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Descripción
-                    </label>
-                    <CustomQuillEditor
-                      value={currentEdicion.description}
-                      onChange={(value) => {
-                        setCurrentEdicion({
-                          ...currentEdicion,
-                          description: value,
-                        });
-                        setHasUnsavedChanges(true);
-                      }}
-                    />
+                  {/* Gestión de imágenes */}
+                  <div className="space-y-6">
+                    <h3 className="text-xl font-bold text-bg-secondary font-bevietnam">
+                      Imágenes
+                    </h3>
+
+                    {/* Área de upload */}
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                      <HiUpload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                      <p className="text-sm text-gray-600 mb-2">
+                        Arrastra imágenes aquí o haz clic para seleccionar
+                      </p>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={(e) => {
+                          if (e.target.files) {
+                            handleImageUpload(e.target.files);
+                          }
+                        }}
+                        disabled={isUploadingImages}
+                        className="hidden"
+                        id="file-upload-editions"
+                      />
+                      <label
+                        htmlFor="file-upload-editions"
+                        className="cursor-pointer inline-flex items-center px-4 py-2 bg-accent-blue text-white rounded-lg hover:bg-accent-blue/90 transition-colors"
+                      >
+                        {isUploadingImages
+                          ? "Subiendo..."
+                          : "Seleccionar Imágenes"}
+                      </label>
+                    </div>
+
+                    {/* Grid de imágenes */}
+                    {edicionImages[currentEdicion.id]?.length > 0 && (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {edicionImages[currentEdicion.id].map(
+                          (imageUrl, index) => (
+                            <div key={index} className="relative group">
+                              <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
+                                <img
+                                  src={imageUrl}
+                                  alt={`Imagen ${index + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+
+                              {/* Overlay con botón de eliminar */}
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <button
+                                  onClick={() => handleImageDelete(imageUrl)}
+                                  className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                  title="Eliminar imagen"
+                                >
+                                  <HiTrash className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    )}
+
+                    {/* Botones de acción */}
+                    <div className="flex gap-4 pt-6">
+                      <button
+                        onClick={handleSave}
+                        disabled={isSaving || !hasUnsavedChanges}
+                        className="flex items-center px-6 py-3 bg-accent-blue text-white rounded-lg hover:bg-accent-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <HiSave className="w-5 h-5 mr-2" />
+                        {isSaving ? "Guardando..." : "Guardar"}
+                      </button>
+                      <button
+                        onClick={handleCancel}
+                        className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
                   </div>
                 </div>
+              </motion.div>
 
-                {/* Gestión de imágenes */}
-                <div className="space-y-6">
-                  <h3 className="text-xl font-bold text-bg-secondary font-bevietnam">
-                    Imágenes
-                  </h3>
-
-                  {/* Área de upload */}
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                    <HiUpload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-600 mb-2">
-                      Arrastra imágenes aquí o haz clic para seleccionar
+              {/* Vista previa */}
+              <div className="mt-12 border-t pt-8">
+                <h2 className="text-xl font-bold text-bg-secondary font-bevietnam mb-6">
+                  Vista previa
+                </h2>
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                  <div className="mb-8">
+                    <h1 className="text-4xl md:text-5xl font-bevietnam font-bold text-bg-secondary mb-3">
+                      {currentEdicion.title || "Título de la Edición"}
+                    </h1>
+                    <p className="text-xl font-joly italic text-accent-blue mb-6">
+                      {currentEdicion.date || "Fecha"}
                     </p>
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      onChange={(e) => {
-                        if (e.target.files) {
-                          handleImageUpload(e.target.files);
-                        }
-                      }}
-                      disabled={isUploadingImages}
-                      className="hidden"
-                      id="file-upload-editions"
-                    />
-                    <label
-                      htmlFor="file-upload-editions"
-                      className="cursor-pointer inline-flex items-center px-4 py-2 bg-accent-blue text-white rounded-lg hover:bg-accent-blue/90 transition-colors"
-                    >
-                      {isUploadingImages
-                        ? "Subiendo..."
-                        : "Seleccionar Imágenes"}
-                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div>
+                        <div
+                          className="text-lg font-bevietnam text-text-primary/80 leading-relaxed"
+                          dangerouslySetInnerHTML={{
+                            __html:
+                              currentEdicion.description ||
+                              "Descripción de la edición",
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <p className="text-lg font-bevietnam">
+                          <span className="font-bold">Ubicación:</span>{" "}
+                          {currentEdicion.location || "Ubicación"}
+                        </p>
+                        <p className="text-lg font-bevietnam">
+                          <span className="font-bold">Participantes:</span>{" "}
+                          {currentEdicion.participants || 0}
+                        </p>
+                        <p className="text-lg font-bevietnam">
+                          <span className="font-bold">Visitantes:</span>{" "}
+                          {currentEdicion.visitors || 0}
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Grid de imágenes */}
+                  {/* Imágenes */}
                   {edicionImages[currentEdicion.id]?.length > 0 && (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {edicionImages[currentEdicion.id].map(
-                        (imageUrl, index) => (
-                          <div key={index} className="relative group">
-                            <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
+                    <div>
+                      <h3 className="text-lg font-bold text-bg-secondary font-bevietnam mb-4">
+                        Imágenes ({edicionImages[currentEdicion.id].length})
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {edicionImages[currentEdicion.id].map(
+                          (imageUrl, index) => (
+                            <div
+                              key={index}
+                              className="aspect-square rounded-lg overflow-hidden bg-gray-100"
+                            >
                               <img
                                 src={imageUrl}
                                 alt={`Imagen ${index + 1}`}
                                 className="w-full h-full object-cover"
                               />
                             </div>
-
-                            {/* Overlay con botón de eliminar */}
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <button
-                                onClick={() => handleImageDelete(imageUrl)}
-                                className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                title="Eliminar imagen"
-                              >
-                                <HiTrash className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        )
-                      )}
+                          )
+                        )}
+                      </div>
                     </div>
                   )}
-
-                  {/* Botones de acción */}
-                  <div className="flex gap-4 pt-6">
-                    <button
-                      onClick={handleSave}
-                      disabled={isSaving || !hasUnsavedChanges}
-                      className="flex items-center px-6 py-3 bg-accent-blue text-white rounded-lg hover:bg-accent-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      <HiSave className="w-5 h-5 mr-2" />
-                      {isSaving ? "Guardando..." : "Guardar"}
-                    </button>
-                    <button
-                      onClick={handleCancel}
-                      className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
                 </div>
               </div>
-            </motion.div>
+            </>
           ) : (
             <div className="grid gap-6">
               {ediciones.map((edicion) => (

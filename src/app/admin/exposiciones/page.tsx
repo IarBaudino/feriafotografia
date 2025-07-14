@@ -301,140 +301,217 @@ export default function ExposicionesAdminPage() {
           </div>
 
           {isEditing && currentExposicion ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-lg shadow-lg p-8"
-            >
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Formulario */}
-                <div className="space-y-6">
-                  <h2 className="text-2xl font-bold text-bg-secondary font-bevietnam">
-                    {currentExposicion.id
-                      ? "Editar Exposición"
-                      : "Nueva Exposición"}
-                  </h2>
+            <>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-lg shadow-lg p-8"
+              >
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Formulario */}
+                  <div className="space-y-6">
+                    <h2 className="text-2xl font-bold text-bg-secondary font-bevietnam">
+                      {currentExposicion.id
+                        ? "Editar Exposición"
+                        : "Nueva Exposición"}
+                    </h2>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Título
-                    </label>
-                    <input
-                      type="text"
-                      value={currentExposicion.title}
-                      onChange={(e) => {
-                        setCurrentExposicion({
-                          ...currentExposicion,
-                          title: e.target.value,
-                        });
-                        setHasUnsavedChanges(true);
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-accent-blue"
-                    />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Título
+                      </label>
+                      <input
+                        type="text"
+                        value={currentExposicion.title}
+                        onChange={(e) => {
+                          setCurrentExposicion({
+                            ...currentExposicion,
+                            title: e.target.value,
+                          });
+                          setHasUnsavedChanges(true);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-accent-blue"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Descripción
+                      </label>
+                      <CustomQuillEditor
+                        value={currentExposicion.description}
+                        onChange={(value) => {
+                          setCurrentExposicion({
+                            ...currentExposicion,
+                            description: value,
+                          });
+                          setHasUnsavedChanges(true);
+                        }}
+                      />
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Descripción
-                    </label>
-                    <CustomQuillEditor
-                      value={currentExposicion.description}
-                      onChange={(value) => {
-                        setCurrentExposicion({
-                          ...currentExposicion,
-                          description: value,
-                        });
-                        setHasUnsavedChanges(true);
-                      }}
-                    />
+                  {/* Gestión de imágenes */}
+                  <div className="space-y-6">
+                    <h3 className="text-xl font-bold text-bg-secondary font-bevietnam">
+                      Imágenes
+                    </h3>
+
+                    {/* Área de upload */}
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                      <HiUpload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                      <p className="text-sm text-gray-600 mb-2">
+                        Arrastra imágenes aquí o haz clic para seleccionar
+                      </p>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={(e) => {
+                          if (e.target.files) {
+                            handleImageUpload(e.target.files);
+                          }
+                        }}
+                        disabled={isUploadingImages}
+                        className="hidden"
+                        id="file-upload-exhibitions"
+                      />
+                      <label
+                        htmlFor="file-upload-exhibitions"
+                        className="cursor-pointer inline-flex items-center px-4 py-2 bg-accent-blue text-white rounded-lg hover:bg-accent-blue/90 transition-colors"
+                      >
+                        {isUploadingImages
+                          ? "Subiendo..."
+                          : "Seleccionar Imágenes"}
+                      </label>
+                    </div>
+
+                    {/* Grid de imágenes */}
+                    {exposicionImages[currentExposicion.id]?.length > 0 && (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {exposicionImages[currentExposicion.id].map(
+                          (imageUrl, index) => (
+                            <div key={index} className="relative group">
+                              <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
+                                <img
+                                  src={imageUrl}
+                                  alt={`Imagen ${index + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+
+                              {/* Overlay con botón de eliminar */}
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <button
+                                  onClick={() => handleImageDelete(imageUrl)}
+                                  className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                  title="Eliminar imagen"
+                                >
+                                  <HiTrash className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    )}
+
+                    {/* Botones de acción */}
+                    <div className="flex gap-4 pt-6">
+                      <button
+                        onClick={handleSave}
+                        disabled={isSaving || !hasUnsavedChanges}
+                        className="flex items-center px-6 py-3 bg-accent-blue text-white rounded-lg hover:bg-accent-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <HiSave className="w-5 h-5 mr-2" />
+                        {isSaving ? "Guardando..." : "Guardar"}
+                      </button>
+                      <button
+                        onClick={handleCancel}
+                        className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
                   </div>
                 </div>
+              </motion.div>
 
-                {/* Gestión de imágenes */}
-                <div className="space-y-6">
-                  <h3 className="text-xl font-bold text-bg-secondary font-bevietnam">
-                    Imágenes
-                  </h3>
+              {/* Vista previa */}
+              <div className="mt-12 border-t pt-8">
+                <h2 className="text-xl font-bold text-bg-secondary font-bevietnam mb-6">
+                  Vista previa
+                </h2>
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                  <div className="mb-8">
+                    {/* Título centrado */}
+                    <div className="text-center mb-12">
+                      <h1 className="text-4xl md:text-5xl font-bevietnam font-bold text-bg-secondary mb-6 bg-gradient-to-r from-accent-blue to-bg-secondary bg-clip-text text-transparent">
+                        {currentExposicion.title || "Título de la Exposición"}
+                      </h1>
+                    </div>
 
-                  {/* Área de upload */}
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                    <HiUpload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-600 mb-2">
-                      Arrastra imágenes aquí o haz clic para seleccionar
-                    </p>
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      onChange={(e) => {
-                        if (e.target.files) {
-                          handleImageUpload(e.target.files);
-                        }
-                      }}
-                      disabled={isUploadingImages}
-                      className="hidden"
-                      id="file-upload-exhibitions"
-                    />
-                    <label
-                      htmlFor="file-upload-exhibitions"
-                      className="cursor-pointer inline-flex items-center px-4 py-2 bg-accent-blue text-white rounded-lg hover:bg-accent-blue/90 transition-colors"
-                    >
-                      {isUploadingImages
-                        ? "Subiendo..."
-                        : "Seleccionar Imágenes"}
-                    </label>
+                    {/* Texto en dos columnas centradas */}
+                    <div className="max-w-6xl mx-auto">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                        {/* Primera columna */}
+                        <div className="prose prose-lg max-w-none text-justify [&_p]:mb-4 [&_h1]:text-4xl [&_h2]:text-3xl [&_h3]:text-2xl [&_ul]:list-disc [&_ol]:list-decimal [&_ul,&_ol]:pl-4 [&_blockquote]:border-l-4 [&_blockquote]:border-accent-blue [&_blockquote]:pl-4 [&_blockquote]:italic [&_p:first-of-type]:mt-0 [&_.ql-font-bevietnam]:font-bevietnam [&_.ql-font-joly]:font-joly">
+                          <div
+                            dangerouslySetInnerHTML={{
+                              __html: currentExposicion.description
+                                ? currentExposicion.description.slice(
+                                    0,
+                                    currentExposicion.description.length / 2
+                                  )
+                                : "Primera mitad de la descripción",
+                            }}
+                          />
+                        </div>
+
+                        {/* Segunda columna */}
+                        <div className="prose prose-lg max-w-none text-justify [&_p]:mb-4 [&_h1]:text-4xl [&_h2]:text-3xl [&_h3]:text-2xl [&_ul]:list-disc [&_ol]:list-decimal [&_ul,&_ol]:pl-4 [&_blockquote]:border-l-4 [&_blockquote]:border-accent-blue [&_blockquote]:pl-4 [&_blockquote]:italic [&_p:first-of-type]:mt-0 [&_.ql-font-bevietnam]:font-bevietnam [&_.ql-font-joly]:font-joly">
+                          <div
+                            dangerouslySetInnerHTML={{
+                              __html: currentExposicion.description
+                                ? currentExposicion.description.slice(
+                                    currentExposicion.description.length / 2
+                                  )
+                                : "Segunda mitad de la descripción",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Grid de imágenes */}
+                  {/* Imágenes */}
                   {exposicionImages[currentExposicion.id]?.length > 0 && (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {exposicionImages[currentExposicion.id].map(
-                        (imageUrl, index) => (
-                          <div key={index} className="relative group">
-                            <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
+                    <div>
+                      <h3 className="text-lg font-bold text-bg-secondary font-bevietnam mb-4">
+                        Imágenes (
+                        {exposicionImages[currentExposicion.id].length})
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {exposicionImages[currentExposicion.id].map(
+                          (imageUrl, index) => (
+                            <div
+                              key={index}
+                              className="aspect-square rounded-lg overflow-hidden bg-gray-100"
+                            >
                               <img
                                 src={imageUrl}
                                 alt={`Imagen ${index + 1}`}
                                 className="w-full h-full object-cover"
                               />
                             </div>
-
-                            {/* Overlay con botón de eliminar */}
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <button
-                                onClick={() => handleImageDelete(imageUrl)}
-                                className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                title="Eliminar imagen"
-                              >
-                                <HiTrash className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        )
-                      )}
+                          )
+                        )}
+                      </div>
                     </div>
                   )}
-
-                  {/* Botones de acción */}
-                  <div className="flex gap-4 pt-6">
-                    <button
-                      onClick={handleSave}
-                      disabled={isSaving || !hasUnsavedChanges}
-                      className="flex items-center px-6 py-3 bg-accent-blue text-white rounded-lg hover:bg-accent-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      <HiSave className="w-5 h-5 mr-2" />
-                      {isSaving ? "Guardando..." : "Guardar"}
-                    </button>
-                    <button
-                      onClick={handleCancel}
-                      className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
                 </div>
               </div>
-            </motion.div>
+            </>
           ) : (
             <div className="grid gap-6">
               {exposiciones.map((exposicion) => (
@@ -444,14 +521,11 @@ export default function ExposicionesAdminPage() {
                   animate={{ opacity: 1, y: 0 }}
                   className="bg-white rounded-lg shadow-md p-6"
                 >
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-center">
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold text-bg-secondary font-bevietnam mb-2">
+                      <h3 className="text-xl font-bold text-bg-secondary font-bevietnam">
                         {exposicion.title}
                       </h3>
-                      <p className="text-text-primary/80 font-bevietnam">
-                        {exposicion.description}
-                      </p>
                     </div>
                     <div className="flex gap-2">
                       <button

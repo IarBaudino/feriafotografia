@@ -355,6 +355,56 @@ export default function AboutPage() {
           </motion.div>
         </div>
       </div>
+
+      {/* Vista previa */}
+      <div className="mt-12 border-t pt-8">
+        <h2 className="text-xl font-bold text-bg-secondary font-bevietnam mb-6">
+          Vista previa
+        </h2>
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            {/* Contenido */}
+            <div>
+              <h2 className="text-2xl font-bold text-bg-secondary font-bevietnam mb-4">
+                {content.title || "Título"}
+              </h2>
+              <div
+                className="prose prose-lg"
+                dangerouslySetInnerHTML={{
+                  __html: content.content || "",
+                }}
+              />
+            </div>
+
+            {/* Imágenes */}
+            <div>
+              <h3 className="text-lg font-bold text-bg-secondary font-bevietnam mb-4">
+                Imágenes ({content.images.length})
+              </h3>
+              {content.images.length > 0 ? (
+                <div className="grid grid-cols-2 gap-4">
+                  {content.images.map((imageUrl, index) => (
+                    <div
+                      key={index}
+                      className="aspect-square rounded-lg overflow-hidden bg-gray-100"
+                    >
+                      <img
+                        src={imageUrl}
+                        alt={`Imagen ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-text-primary/60 font-bevietnam">
+                  No hay imágenes cargadas
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </AuthCheck>
   );
 }

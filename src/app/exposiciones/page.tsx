@@ -153,7 +153,24 @@ export default function ExposicionesPage() {
       />
 
       <main className="md:pl-64 pt-28">
-        {selectedExposicion ? (
+        {/* Si no hay exposición seleccionada, mostrar solo la lista de títulos */}
+        {currentExposicion === "" ? (
+          <div className="container mx-auto px-6 py-12">
+            <div className="grid gap-6 max-w-3xl mx-auto">
+              {exposiciones.map((expo) => (
+                <div
+                  key={expo.id}
+                  className="bg-white rounded-lg shadow-md p-6 cursor-pointer hover:bg-accent-blue/5 transition-colors"
+                  onClick={() => setCurrentExposicion(expo.id)}
+                >
+                  <h3 className="text-2xl font-bevietnam font-bold text-bg-secondary">
+                    {expo.title}
+                  </h3>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : selectedExposicion ? (
           <div className="container mx-auto px-6 py-12">
             <motion.div
               key={currentExposicion}
@@ -173,83 +190,54 @@ export default function ExposicionesPage() {
                   {new Date(selectedExposicion.created_at).getFullYear()}
                 </motion.div>
 
-                {/* Título y texto en columnas */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
-                  {/* Título */}
-                  <div className="md:col-span-3">
-                    <h2 className="text-4xl md:text-6xl font-bevietnam font-bold text-bg-secondary mb-6 bg-gradient-to-r from-accent-blue to-bg-secondary bg-clip-text text-transparent">
-                      {selectedExposicion.title}
-                    </h2>
-                  </div>
+                {/* Título */}
+                <div className="text-center mb-12">
+                  <h2 className="text-4xl md:text-6xl font-bevietnam font-bold text-bg-secondary mb-6 bg-gradient-to-r from-accent-blue to-bg-secondary bg-clip-text text-transparent">
+                    {selectedExposicion.title}
+                  </h2>
+                </div>
 
-                  {/* Primera columna de texto */}
-                  <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    className="relative"
-                  >
-                    <div
-                      className="prose prose-lg max-w-none text-justify [&_p]:mb-4 [&_h1]:text-4xl [&_h2]:text-3xl [&_h3]:text-2xl [&_ul]:list-disc [&_ol]:list-decimal [&_ul,&_ol]:pl-4 [&_blockquote]:border-l-4 [&_blockquote]:border-accent-blue [&_blockquote]:pl-4 [&_blockquote]:italic [&_p:first-of-type]:mt-0"
-                      dangerouslySetInnerHTML={{
-                        __html: selectedExposicion.description.slice(
-                          0,
-                          selectedExposicion.description.length / 2
-                        ),
-                      }}
-                    />
-                  </motion.div>
-
-                  {/* Segunda columna de texto */}
-                  <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    className="relative"
-                  >
-                    <div
-                      className="prose prose-lg max-w-none text-justify [&_p]:mb-4 [&_h1]:text-4xl [&_h2]:text-3xl [&_h3]:text-2xl [&_ul]:list-disc [&_ol]:list-decimal [&_ul,&_ol]:pl-4 [&_blockquote]:border-l-4 [&_blockquote]:border-accent-blue [&_blockquote]:pl-4 [&_blockquote]:italic [&_p:first-of-type]:mt-0"
-                      dangerouslySetInnerHTML={{
-                        __html: selectedExposicion.description.slice(
-                          selectedExposicion.description.length / 2
-                        ),
-                      }}
-                    />
-                  </motion.div>
-
-                  {/* Imagen destacada */}
-                  {exposicionImages[selectedExposicion.id] && (
-                    <div className="aspect-[3/4] relative overflow-hidden rounded-2xl">
-                      <img
-                        src={
-                          mainImage?.url ||
-                          exposicionImages[selectedExposicion.id][0].url
-                        }
-                        alt={
-                          mainImage?.alt ||
-                          exposicionImages[selectedExposicion.id][0].alt
-                        }
-                        className="w-full h-full object-cover"
+                {/* Texto en dos columnas centradas */}
+                <div className="max-w-6xl mx-auto">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    {/* Primera columna de texto */}
+                    <motion.div
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      className="relative"
+                    >
+                      <div
+                        className="prose prose-lg max-w-none text-justify [&_p]:mb-4 [&_h1]:text-4xl [&_h2]:text-3xl [&_h3]:text-2xl [&_ul]:list-disc [&_ol]:list-decimal [&_ul,&_ol]:pl-4 [&_blockquote]:border-l-4 [&_blockquote]:border-accent-blue [&_blockquote]:pl-4 [&_blockquote]:italic [&_p:first-of-type]:mt-0 [&_.ql-font-bevietnam]:font-bevietnam [&_.ql-font-joly]:font-joly"
+                        dangerouslySetInnerHTML={{
+                          __html: selectedExposicion.description.slice(
+                            0,
+                            selectedExposicion.description.length / 2
+                          ),
+                        }}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                      {/* Info del artista */}
-                      <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                        {mainImage?.artwork_title && (
-                          <h3 className="text-lg font-bold">
-                            {mainImage.artwork_title}
-                          </h3>
-                        )}
-                        {mainImage?.artist_name && (
-                          <p className="text-sm opacity-90">
-                            {mainImage.artist_name}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                    </motion.div>
+
+                    {/* Segunda columna de texto */}
+                    <motion.div
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      className="relative"
+                    >
+                      <div
+                        className="prose prose-lg max-w-none text-justify [&_p]:mb-4 [&_h1]:text-4xl [&_h2]:text-3xl [&_h3]:text-2xl [&_ul]:list-disc [&_ol]:list-decimal [&_ul,&_ol]:pl-4 [&_blockquote]:border-l-4 [&_blockquote]:border-accent-blue [&_blockquote]:pl-4 [&_blockquote]:italic [&_p:first-of-type]:mt-0 [&_.ql-font-bevietnam]:font-bevietnam [&_.ql-font-joly]:font-joly"
+                        dangerouslySetInnerHTML={{
+                          __html: selectedExposicion.description.slice(
+                            selectedExposicion.description.length / 2
+                          ),
+                        }}
+                      />
+                    </motion.div>
+                  </div>
                 </div>
               </div>
 
               {/* Galería de imágenes */}
-              {exposicionImages[selectedExposicion.id]?.length > 1 && (
+              {exposicionImages[selectedExposicion.id]?.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}

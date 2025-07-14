@@ -115,9 +115,12 @@ export default function Calls() {
             <h3 className="text-2xl font-bevietnam font-bold mb-4 text-bg-secondary">
               {callData?.title}
             </h3>
-            <p className="text-text-primary font-bevietnam font-normal mb-6">
-              {callData?.description}
-            </p>
+            <div
+              className="text-text-primary font-bevietnam font-normal mb-6"
+              dangerouslySetInnerHTML={{
+                __html: callData?.description || "",
+              }}
+            />
             <div className="space-y-4">
               <p className="font-bevietnam font-thin italic">
                 Fecha límite:{" "}

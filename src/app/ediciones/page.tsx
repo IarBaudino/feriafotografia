@@ -175,9 +175,12 @@ export default function EdicionesPage() {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 mb-20">
                 <div className="lg:col-span-7">
                   <div className="prose prose-lg max-w-none">
-                    <p className="text-xl font-bevietnam text-text-primary/80 leading-relaxed">
-                      {selectedEdicion.description}
-                    </p>
+                    <div 
+                      className="text-xl font-bevietnam text-text-primary/80 leading-relaxed"
+                      dangerouslySetInnerHTML={{
+                        __html: selectedEdicion.description
+                      }}
+                    />
                   </div>
                 </div>
                 <div className="lg:col-span-5">

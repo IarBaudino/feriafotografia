@@ -60,9 +60,10 @@ export default function CulturalAgendaPage() {
     }
   };
 
-  const filteredEvents = currentCategory === "todos" 
-    ? events 
-    : events.filter(event => event.category_name === currentCategory);
+  const filteredEvents =
+    currentCategory === "todos"
+      ? events
+      : events.filter((event) => event.category_name === currentCategory);
 
   const sidebarSections = [
     {
@@ -72,11 +73,13 @@ export default function CulturalAgendaPage() {
           id: "todos",
           title: "Todos los eventos",
           description: "Ver todos los eventos",
+          year: "",
         },
         ...categories.map((cat) => ({
           id: cat,
           title: cat,
           description: `Ver eventos de ${cat}`,
+          year: "",
         })),
       ],
     },
@@ -101,8 +104,8 @@ export default function CulturalAgendaPage() {
             className="max-w-6xl mx-auto"
           >
             <h1 className="text-4xl md:text-5xl font-bevietnam font-bold text-bg-secondary mb-8">
-              {currentCategory === "todos" 
-                ? "Todos los eventos" 
+              {currentCategory === "todos"
+                ? "Todos los eventos"
                 : currentCategory}
             </h1>
 
@@ -147,7 +150,12 @@ export default function CulturalAgendaPage() {
                           {event.speaker}
                         </p>
                       )}
-                      <p className="mt-4">{event.description}</p>
+                      <div
+                        className="mt-4"
+                        dangerouslySetInnerHTML={{
+                          __html: event.description,
+                        }}
+                      />
                     </div>
                   </div>
                 </motion.div>
