@@ -229,16 +229,39 @@ export default function TeamPage() {
                       Sitio Web (opcional)
                     </label>
                     <input
-                      type="url"
+                      type="text"
+                      placeholder="https://ejemplo.com o www.ejemplo.com"
                       value={currentMember.website || ""}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        let website = e.target.value;
+
+                        // Si el usuario ingresa una URL sin protocolo, agregar https://
+                        if (
+                          website &&
+                          !website.startsWith("http://") &&
+                          !website.startsWith("https://")
+                        ) {
+                          if (website.startsWith("www.")) {
+                            website = "https://" + website;
+                          } else if (
+                            website.includes(".") &&
+                            !website.startsWith("http")
+                          ) {
+                            website = "https://" + website;
+                          }
+                        }
+
                         setCurrentMember({
                           ...currentMember,
-                          website: e.target.value,
-                        })
-                      }
+                          website: website,
+                        });
+                      }}
                       className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Puedes ingresar con o sin https:// (se agregará
+                      automáticamente)
+                    </p>
                   </div>
 
                   {/* Botones */}

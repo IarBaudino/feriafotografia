@@ -43,22 +43,35 @@ export default function Contact() {
     setIsSubmitting(true);
 
     try {
-      // Aquí puedes agregar la lógica para enviar el formulario
-      // Por ejemplo, usando un servicio de email o una API
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      setStatus({
-        type: "success",
-        message:
-          "¡Mensaje enviado con éxito! Nos pondremos en contacto contigo pronto.",
+      const response = await fetch("https://formspree.io/f/mkgbdkyg", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          message: formData.message,
+        }),
       });
 
-      setFormData({
-        name: "",
-        email: "",
-        subject: "",
-        message: "",
-      });
+      if (response.ok) {
+        setStatus({
+          type: "success",
+          message:
+            "¡Mensaje enviado con éxito! Nos pondremos en contacto contigo pronto.",
+        });
+
+        setFormData({
+          name: "",
+          email: "",
+          subject: "",
+          message: "",
+        });
+      } else {
+        throw new Error("Error sending message");
+      }
     } catch (error) {
       setStatus({
         type: "error",
@@ -83,7 +96,7 @@ export default function Contact() {
             ¡Hablemos!
           </h2>
           <a
-            href="https://instagram.com/feriafotografia"
+            href="https://www.instagram.com/feriadefotografia?igsh=MXA2amJyaGtqZXo3Mg=="
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center text-bg-primary hover:text-accent-blue transition-all mt-2 font-joly italic group hover:-translate-y-1"
@@ -92,7 +105,7 @@ export default function Contact() {
               size={20}
               className="mr-2 group-hover:rotate-12 transition-transform"
             />
-            @feriafotografia
+            @feriadefotografia
           </a>
         </motion.div>
 

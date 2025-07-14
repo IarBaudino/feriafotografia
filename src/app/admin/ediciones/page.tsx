@@ -12,13 +12,6 @@ import {
 } from "react-icons/hi";
 import CustomQuillEditor from "@/components/Editor/CustomQuillEditor";
 import AuthCheck from "@/components/Auth/AuthCheck";
-import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-  DroppableProvided,
-  DraggableProvided,
-} from "react-beautiful-dnd";
 
 interface Edicion {
   id: string;
@@ -29,13 +22,6 @@ interface Edicion {
   location: string;
   participants: number;
   visitors: number;
-}
-
-interface EdicionImage {
-  id: string;
-  url: string;
-  alt: string;
-  section_id: string;
 }
 
 interface PreviewModalProps {
@@ -113,10 +99,14 @@ export default function EdicionesAdminPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [edicionImages, setEdicionImages] = useState<
-    Record<string, EdicionImage[]>
-  >({});
+  const [edicionImages, setEdicionImages] = useState<Record<string, string[]>>(
+    {}
+  );
   const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [previewModal, setPreviewModal] = useState<{
+    isOpen: boolean;
+    edicion: Edicion | null;
+  }>({ isOpen: false, edicion: null });
 
   useEffect(() => {
     loadEdiciones();
@@ -147,9 +137,9 @@ export default function EdicionesAdminPage() {
             if (!acc[img.section_id]) {
               acc[img.section_id] = [];
             }
-            acc[img.section_id].push(img);
+            acc[img.section_id].push(img.url);
             return acc;
-          }, {} as Record<string, EdicionImage[]>);
+          }, {} as Record<string, string[]>);
 
           setEdicionImages(imagesByEdition);
         }
@@ -159,53 +149,19 @@ export default function EdicionesAdminPage() {
     }
   };
 
-  const handleSave = async () => {
-    if (!currentEdicion) return;
-
-    setIsSaving(true);
-    try {
-      const dataToSave: Partial<Edicion> = {
-        title: currentEdicion.title,
-        date: currentEdicion.date,
-        description: currentEdicion.description,
-        location: currentEdicion.location,
-        participants: currentEdicion.participants,
-        visitors: currentEdicion.visitors,
-      };
-
-      if (currentEdicion.id) {
-        dataToSave.id = currentEdicion.id;
-      }
-
-      const { error } = await supabase.from("editions").upsert(dataToSave);
-
-      if (error) throw error;
-
-      loadEdiciones();
-      setHasUnsavedChanges(false);
-      setIsEditing(false);
-      alert("Cambios guardados correctamente");
-    } catch (error) {
-      console.error("Error guardando cambios:", error);
-      alert("Error al guardar los cambios");
-    } finally {
-      setIsSaving(false);
+  const handleImageUpload = async (files: FileList) => {
+    if (!currentEdicion) {
+      alert("Por favor, selecciona una edición para subir imágenes");
+      return;
     }
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || !currentEdicion) return;
 
     setIsUploadingImages(true);
     try {
-      console.log("Iniciando subida de imágenes...");
-      const files = Array.from(e.target.files);
-      const uploadPromises = files.map(async (file) => {
+      const uploadPromises = Array.from(files).map(async (file) => {
         const fileExt = file.name.split(".").pop();
         const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
-        const filePath = `editions/${currentEdicion.id}/${fileName}`;
+        const filePath = `editions/${fileName}`;
 
-        console.log("Subiendo archivo:", filePath);
         const { error: uploadError } = await supabase.storage
           .from("images")
           .upload(filePath, file);
@@ -216,31 +172,16 @@ export default function EdicionesAdminPage() {
           data: { publicUrl },
         } = supabase.storage.from("images").getPublicUrl(filePath);
 
-        console.log("URL pública generada:", publicUrl);
-
-        // Guardar referencia en la tabla images
-        const { data: imageData, error: imageError } = await supabase
-          .from("images")
-          .insert({
-            url: publicUrl,
-            alt: `Imagen de ${currentEdicion.title}`,
-            section: "editions",
-            section_id: currentEdicion.id,
-          })
-          .select()
-          .single();
-
-        if (imageError) throw imageError;
-        console.log("Imagen guardada en BD:", imageData);
-        return imageData;
+        return publicUrl;
       });
 
-      const newImages = await Promise.all(uploadPromises);
-      console.log("Todas las imágenes subidas:", newImages);
-
+      const newImageUrls = await Promise.all(uploadPromises);
       setEdicionImages((prev) => ({
         ...prev,
-        [currentEdicion.id]: [...(prev[currentEdicion.id] || []), ...newImages],
+        [currentEdicion.id]: [
+          ...(prev[currentEdicion.id] || []),
+          ...newImageUrls,
+        ],
       }));
 
       setHasUnsavedChanges(true);
@@ -252,36 +193,35 @@ export default function EdicionesAdminPage() {
     }
   };
 
-  const handleImageDelete = async (img: EdicionImage) => {
+  const handleImageDelete = async (imageUrl: string) => {
     if (!currentEdicion) return;
 
     try {
-      // Eliminar el archivo del storage
-      const fileName = img.url.split("/").pop();
+      // Extraer el nombre del archivo de la URL
+      const fileName = imageUrl.split("/").pop();
       if (fileName) {
         const { error: storageError } = await supabase.storage
           .from("images")
-          .remove([`editions/${currentEdicion.id}/${fileName}`]);
+          .remove([`editions/${fileName}`]);
 
         if (storageError) throw storageError;
       }
 
-      // Eliminar el registro de la base de datos
+      // Eliminar de la base de datos
       const { error: dbError } = await supabase
         .from("images")
         .delete()
-        .eq("id", img.id);
+        .eq("url", imageUrl);
 
       if (dbError) throw dbError;
 
-      // Actualizar el estado local
+      // Actualizar estado local
       setEdicionImages((prev) => ({
         ...prev,
         [currentEdicion.id]: prev[currentEdicion.id].filter(
-          (image) => image.section_id !== img.section_id
+          (url) => url !== imageUrl
         ),
       }));
-
       setHasUnsavedChanges(true);
     } catch (error) {
       console.error("Error eliminando imagen:", error);
@@ -289,20 +229,161 @@ export default function EdicionesAdminPage() {
     }
   };
 
+  const handleSave = async () => {
+    if (!currentEdicion) return;
+
+    setIsSaving(true);
+    try {
+      let edicionId = currentEdicion.id;
+
+      if (!edicionId) {
+        // Crear nueva edición
+        const { data: newEdicion, error: createError } = await supabase
+          .from("editions")
+          .insert({
+            title: currentEdicion.title,
+            date: currentEdicion.date,
+            description: currentEdicion.description,
+            location: currentEdicion.location,
+            participants: currentEdicion.participants,
+            visitors: currentEdicion.visitors,
+          })
+          .select()
+          .single();
+
+        if (createError) throw createError;
+        edicionId = newEdicion.id;
+      } else {
+        // Actualizar edición existente
+        const { error: updateError } = await supabase
+          .from("editions")
+          .update({
+            title: currentEdicion.title,
+            date: currentEdicion.date,
+            description: currentEdicion.description,
+            location: currentEdicion.location,
+            participants: currentEdicion.participants,
+            visitors: currentEdicion.visitors,
+          })
+          .eq("id", edicionId);
+
+        if (updateError) throw updateError;
+      }
+
+      // Guardar imágenes en la base de datos
+      if (edicionId) {
+        const currentImages = edicionImages[currentEdicion.id] || [];
+        for (const imageUrl of currentImages) {
+          // Verificar si la imagen ya existe en la base de datos
+          const { data: existingImage } = await supabase
+            .from("images")
+            .select("id")
+            .eq("url", imageUrl)
+            .single();
+
+          if (!existingImage) {
+            // Si no existe, insertarla
+            const { error: imageError } = await supabase.from("images").insert({
+              url: imageUrl,
+              alt: `Imagen de ${currentEdicion.title}`,
+              section: "editions",
+              section_id: edicionId,
+            });
+            if (imageError) throw imageError;
+          }
+        }
+      }
+
+      setHasUnsavedChanges(false);
+      alert("Cambios guardados correctamente");
+      loadEdiciones();
+      setCurrentEdicion(null);
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error guardando edición:", error);
+      alert("Error al guardar la edición");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async (edicionId: string) => {
+    if (!confirm("¿Estás seguro de que quieres eliminar esta edición?")) return;
+
+    try {
+      // Eliminar imágenes asociadas
+      const { data: imagesData, error: imagesError } = await supabase
+        .from("images")
+        .select("*")
+        .eq("section_id", edicionId);
+
+      if (imagesError) throw imagesError;
+
+      // Eliminar archivos del storage
+      if (imagesData) {
+        for (const img of imagesData) {
+          const fileName = img.url.split("/").pop();
+          if (fileName) {
+            await supabase.storage
+              .from("images")
+              .remove([`editions/${fileName}`]);
+          }
+        }
+      }
+
+      // Eliminar registros de imágenes de la base de datos
+      const { error: deleteImagesError } = await supabase
+        .from("images")
+        .delete()
+        .eq("section_id", edicionId);
+
+      if (deleteImagesError) throw deleteImagesError;
+
+      // Eliminar la edición
+      const { error: deleteError } = await supabase
+        .from("editions")
+        .delete()
+        .eq("id", edicionId);
+
+      if (deleteError) throw deleteError;
+
+      alert("Edición eliminada correctamente");
+      loadEdiciones();
+    } catch (error) {
+      console.error("Error eliminando edición:", error);
+      alert("Error al eliminar la edición");
+    }
+  };
+
+  const handleEdit = (edicion: Edicion) => {
+    setCurrentEdicion(edicion);
+    setIsEditing(true);
+    setHasUnsavedChanges(false);
+  };
+
+  const handleNew = () => {
+    setCurrentEdicion(EMPTY_EDICION);
+    setIsEditing(true);
+    setHasUnsavedChanges(false);
+  };
+
+  const handleCancel = () => {
+    setCurrentEdicion(null);
+    setIsEditing(false);
+    setHasUnsavedChanges(false);
+  };
+
   return (
     <AuthCheck>
       <div className="min-h-screen bg-bg-primary">
         <div className="container mx-auto px-6 py-8">
-          <div className="flex justify-between items-center mb-8 pt-8">
-            <h1 className="text-3xl font-bevietnam font-bold text-bg-secondary">
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold text-bg-secondary font-bevietnam">
               Administrar Ediciones
             </h1>
             <button
-              onClick={() => {
-                setCurrentEdicion(EMPTY_EDICION);
-                setIsEditing(true);
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-accent-blue text-white rounded-lg hover:bg-opacity-90"
+              onClick={handleNew}
+              className="flex items-center gap-2 px-4 py-2 bg-accent-blue text-white rounded-lg hover:bg-accent-blue/90 transition-colors"
             >
               <HiPlus className="w-5 h-5" />
               Nueva Edición
@@ -310,200 +391,255 @@ export default function EdicionesAdminPage() {
           </div>
 
           {isEditing && currentEdicion ? (
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">Título</label>
-                <input
-                  type="text"
-                  value={currentEdicion?.title || ""}
-                  onChange={(e) => {
-                    setCurrentEdicion((prev) =>
-                      prev ? { ...prev, title: e.target.value } : null
-                    );
-                    setHasUnsavedChanges(true);
-                  }}
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
-                />
-              </div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-lg shadow-lg p-8"
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Formulario */}
+                <div className="space-y-6">
+                  <h2 className="text-2xl font-bold text-bg-secondary font-bevietnam">
+                    {currentEdicion.id ? "Editar Edición" : "Nueva Edición"}
+                  </h2>
 
-              <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">Fecha</label>
-                <input
-                  type="datetime-local"
-                  value={currentEdicion?.date || ""}
-                  onChange={(e) => {
-                    setCurrentEdicion((prev) =>
-                      prev ? { ...prev, date: e.target.value } : null
-                    );
-                    setHasUnsavedChanges(true);
-                  }}
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
-                />
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Título
+                    </label>
+                    <input
+                      type="text"
+                      value={currentEdicion.title}
+                      onChange={(e) => {
+                        setCurrentEdicion({
+                          ...currentEdicion,
+                          title: e.target.value,
+                        });
+                        setHasUnsavedChanges(true);
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-accent-blue"
+                    />
+                  </div>
 
-              <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">
-                  Ubicación
-                </label>
-                <input
-                  type="text"
-                  value={currentEdicion?.location || ""}
-                  onChange={(e) => {
-                    setCurrentEdicion((prev) =>
-                      prev ? { ...prev, location: e.target.value } : null
-                    );
-                    setHasUnsavedChanges(true);
-                  }}
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
-                />
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Fecha
+                    </label>
+                    <input
+                      type="text"
+                      value={currentEdicion.date}
+                      onChange={(e) => {
+                        setCurrentEdicion({
+                          ...currentEdicion,
+                          date: e.target.value,
+                        });
+                        setHasUnsavedChanges(true);
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-accent-blue"
+                    />
+                  </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Participantes
-                  </label>
-                  <input
-                    type="number"
-                    value={currentEdicion?.participants || 0}
-                    onChange={(e) => {
-                      setCurrentEdicion((prev) =>
-                        prev
-                          ? { ...prev, participants: Number(e.target.value) }
-                          : null
-                      );
-                      setHasUnsavedChanges(true);
-                    }}
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Ubicación
+                    </label>
+                    <input
+                      type="text"
+                      value={currentEdicion.location}
+                      onChange={(e) => {
+                        setCurrentEdicion({
+                          ...currentEdicion,
+                          location: e.target.value,
+                        });
+                        setHasUnsavedChanges(true);
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-accent-blue"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Participantes
+                      </label>
+                      <input
+                        type="number"
+                        value={currentEdicion.participants}
+                        onChange={(e) => {
+                          setCurrentEdicion({
+                            ...currentEdicion,
+                            participants: parseInt(e.target.value) || 0,
+                          });
+                          setHasUnsavedChanges(true);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-accent-blue"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Visitantes
+                      </label>
+                      <input
+                        type="number"
+                        value={currentEdicion.visitors}
+                        onChange={(e) => {
+                          setCurrentEdicion({
+                            ...currentEdicion,
+                            visitors: parseInt(e.target.value) || 0,
+                          });
+                          setHasUnsavedChanges(true);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-accent-blue"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Descripción
+                    </label>
+                    <CustomQuillEditor
+                      value={currentEdicion.description}
+                      onChange={(value) => {
+                        setCurrentEdicion({
+                          ...currentEdicion,
+                          description: value,
+                        });
+                        setHasUnsavedChanges(true);
+                      }}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Visitantes
-                  </label>
-                  <input
-                    type="number"
-                    value={currentEdicion?.visitors || 0}
-                    onChange={(e) => {
-                      setCurrentEdicion((prev) =>
-                        prev
-                          ? { ...prev, visitors: Number(e.target.value) }
-                          : null
-                      );
-                      setHasUnsavedChanges(true);
-                    }}
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
-                  />
-                </div>
-              </div>
 
-              <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">
-                  Descripción
-                </label>
-                <textarea
-                  value={currentEdicion?.description || ""}
-                  onChange={(e) => {
-                    setCurrentEdicion((prev) =>
-                      prev ? { ...prev, description: e.target.value } : null
-                    );
-                    setHasUnsavedChanges(true);
-                  }}
-                  rows={4}
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
-                />
-              </div>
+                {/* Gestión de imágenes */}
+                <div className="space-y-6">
+                  <h3 className="text-xl font-bold text-bg-secondary font-bevietnam">
+                    Imágenes
+                  </h3>
 
-              <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">
-                  Imágenes
-                </label>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  disabled={isUploadingImages}
-                  className="w-full p-2 border rounded"
-                />
+                  {/* Área de upload */}
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <HiUpload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                    <p className="text-sm text-gray-600 mb-2">
+                      Arrastra imágenes aquí o haz clic para seleccionar
+                    </p>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => {
+                        if (e.target.files) {
+                          handleImageUpload(e.target.files);
+                        }
+                      }}
+                      disabled={isUploadingImages}
+                      className="hidden"
+                      id="file-upload-editions"
+                    />
+                    <label
+                      htmlFor="file-upload-editions"
+                      className="cursor-pointer inline-flex items-center px-4 py-2 bg-accent-blue text-white rounded-lg hover:bg-accent-blue/90 transition-colors"
+                    >
+                      {isUploadingImages
+                        ? "Subiendo..."
+                        : "Seleccionar Imágenes"}
+                    </label>
+                  </div>
 
-                {/* Mostrar imágenes existentes */}
-                {currentEdicion &&
-                  edicionImages[currentEdicion.id]?.length > 0 && (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                      {edicionImages[currentEdicion.id].map((img) => (
-                        <div key={img.id} className="relative group">
-                          <img
-                            src={img.url}
-                            alt={img.alt}
-                            className="w-full h-40 object-cover rounded-lg"
-                          />
-                          <button
-                            onClick={() => handleImageDelete(img)}
-                            className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <HiTrash className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
+                  {/* Grid de imágenes */}
+                  {edicionImages[currentEdicion.id]?.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {edicionImages[currentEdicion.id].map(
+                        (imageUrl, index) => (
+                          <div key={index} className="relative group">
+                            <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
+                              <img
+                                src={imageUrl}
+                                alt={`Imagen ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+
+                            {/* Overlay con botón de eliminar */}
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <button
+                                onClick={() => handleImageDelete(imageUrl)}
+                                className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                title="Eliminar imagen"
+                              >
+                                <HiTrash className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      )}
                     </div>
                   )}
-              </div>
 
-              <div className="flex justify-end gap-4 mt-6">
-                <button
-                  onClick={() => setIsEditing(false)}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving || !hasUnsavedChanges}
-                  className={`flex items-center gap-2 px-6 py-2 rounded-lg ${
-                    hasUnsavedChanges
-                      ? "bg-accent-green text-white hover:bg-opacity-90"
-                      : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                  }`}
-                >
-                  <HiSave className="w-5 h-5" />
-                  {isSaving ? "Guardando..." : "Guardar Cambios"}
-                </button>
+                  {/* Botones de acción */}
+                  <div className="flex gap-4 pt-6">
+                    <button
+                      onClick={handleSave}
+                      disabled={isSaving || !hasUnsavedChanges}
+                      className="flex items-center px-6 py-3 bg-accent-blue text-white rounded-lg hover:bg-accent-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <HiSave className="w-5 h-5 mr-2" />
+                      {isSaving ? "Guardando..." : "Guardar"}
+                    </button>
+                    <button
+                      onClick={handleCancel}
+                      className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            </motion.div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid gap-6">
               {ediciones.map((edicion) => (
                 <motion.div
                   key={edicion.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-white rounded-xl overflow-hidden shadow-lg"
+                  className="bg-white rounded-lg shadow-md p-6"
                 >
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-bg-secondary font-bevietnam mb-2">
-                      {edicion.title}
-                    </h3>
-                    <p className="text-sm text-accent-blue font-joly mb-4">
-                      {new Date(edicion.date).toLocaleDateString()}
-                    </p>
-                    <p className="text-sm text-text-primary/80 mb-4 line-clamp-2">
-                      {edicion.description}
-                    </p>
-                    <div className="flex justify-end gap-2">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-bg-secondary font-bevietnam mb-2">
+                        {edicion.title}
+                      </h3>
+                      <p className="text-text-primary/80 font-bevietnam mb-2">
+                        {edicion.date} • {edicion.location}
+                      </p>
+                      <p className="text-text-primary font-bevietnam">
+                        {edicion.participants} participantes •{" "}
+                        {edicion.visitors} visitantes
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
                       <button
                         onClick={() => {
-                          setCurrentEdicion(edicion);
+                          setPreviewModal({ isOpen: true, edicion });
                         }}
                         className="p-2 text-accent-blue hover:bg-accent-blue/10 rounded-lg transition-colors"
+                        title="Vista previa"
+                      >
+                        <HiEye className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => handleEdit(edicion)}
+                        className="p-2 text-accent-blue hover:bg-accent-blue/10 rounded-lg transition-colors"
+                        title="Editar"
                       >
                         <HiPencil className="w-5 h-5" />
                       </button>
                       <button
-                        onClick={() => {
-                          /* Confirmar y eliminar */
-                        }}
+                        onClick={() => handleDelete(edicion.id)}
                         className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Eliminar"
                       >
                         <HiTrash className="w-5 h-5" />
                       </button>
@@ -514,6 +650,13 @@ export default function EdicionesAdminPage() {
             </div>
           )}
         </div>
+
+        {/* Modal de vista previa */}
+        <PreviewModal
+          edicion={previewModal.edicion!}
+          isOpen={previewModal.isOpen}
+          onClose={() => setPreviewModal({ isOpen: false, edicion: null })}
+        />
       </div>
     </AuthCheck>
   );

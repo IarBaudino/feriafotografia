@@ -18,62 +18,6 @@ interface AboutData {
   updated_at: string;
 }
 
-const collageImages: CollageImage[] = [
-  {
-    src: "/imagenes/image1.jpg",
-    alt: "Feria Fotografía - Ambiente",
-    className:
-      "mb-4 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300",
-  },
-  {
-    src: "/imagenes/image2.jpg",
-    alt: "Feria Fotografía - Exposición",
-    className:
-      "mb-4 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300",
-  },
-  {
-    src: "/imagenes/image3.jpg",
-    alt: "Feria Fotografía - Detalles",
-    className:
-      "mb-4 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300",
-  },
-  {
-    src: "/imagenes/image4.jpg",
-    alt: "Feria Fotografía - Participantes",
-    className:
-      "mb-4 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300",
-  },
-  {
-    src: "/imagenes/image5.jpg",
-    alt: "Feria Fotografía - Obras",
-    className:
-      "mb-4 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300",
-  },
-  {
-    src: "/imagenes/image6.jpg",
-    alt: "Feria Fotografía - Visitantes",
-    className:
-      "mb-4 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300",
-  },
-  {
-    src: "/imagenes/image7.jpg",
-    alt: "Feria Fotografía - Panorámica",
-    className:
-      "mb-4 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300",
-  },
-];
-
-// Imágenes por defecto como fallback
-const defaultCollageImages: CollageImage[] = [
-  {
-    src: "/imagenes/image1.jpg",
-    alt: "Feria Fotografía - Ambiente",
-    className:
-      "mb-4 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300",
-  },
-  // ... resto de las imágenes por defecto ...
-];
-
 // Agregar estilos globales para las fuentes
 const fontStyles = `
   .ql-font-bevietnam {
@@ -113,10 +57,8 @@ export default function About() {
           return;
         }
 
-        // Si no hay datos, usar las imágenes por defecto
-        if (!imagesData || imagesData.length === 0) {
-          setCollageImages(defaultCollageImages);
-        } else {
+        // Solo usar imágenes de la base de datos, no fallback
+        if (imagesData && imagesData.length > 0) {
           const formattedImages = imagesData.map((img) => ({
             src: img.url,
             alt: img.alt || "Feria Fotografía",
@@ -124,6 +66,9 @@ export default function About() {
               "mb-4 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300",
           }));
           setCollageImages(formattedImages);
+        } else {
+          // Si no hay imágenes, mostrar array vacío
+          setCollageImages([]);
         }
 
         if (aboutData) {
@@ -131,8 +76,8 @@ export default function About() {
         }
       } catch (error) {
         console.error("Error fetching data:", error);
-        // En caso de error, usar las imágenes por defecto
-        setCollageImages(defaultCollageImages);
+        // En caso de error, mostrar array vacío
+        setCollageImages([]);
       }
     }
 
@@ -143,7 +88,10 @@ export default function About() {
     const style = document.createElement("style");
     style.innerHTML = fontStyles;
     document.head.appendChild(style);
-    return () => document.head.removeChild(style);
+
+    return () => {
+      document.head.removeChild(style);
+    };
   }, []);
 
   const breakpointColumns = {
@@ -180,13 +128,13 @@ export default function About() {
             viewport={{ once: true }}
             className="relative"
           >
-            <Masonry
-              breakpointCols={breakpointColumns}
-              className="flex -ml-4 w-auto"
-              columnClassName="pl-4 bg-clip-padding"
-            >
-              {collageImages.length > 0 ? (
-                collageImages.map((image, index) => (
+            {collageImages.length > 0 ? (
+              <Masonry
+                breakpointCols={breakpointColumns}
+                className="flex -ml-4 w-auto"
+                columnClassName="pl-4 bg-clip-padding"
+              >
+                {collageImages.map((image, index) => (
                   <motion.div
                     key={image.src}
                     initial={{ opacity: 0, y: 20 }}
@@ -206,11 +154,15 @@ export default function About() {
                       />
                     </div>
                   </motion.div>
-                ))
-              ) : (
-                <p>Cargando imágenes...</p>
-              )}
-            </Masonry>
+                ))}
+              </Masonry>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-text-primary/60 font-bevietnam">
+                  No hay imágenes disponibles
+                </p>
+              </div>
+            )}
           </motion.div>
         </div>
       </div>

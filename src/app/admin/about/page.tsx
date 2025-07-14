@@ -2,28 +2,16 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import dynamic from "next/dynamic";
-import { HiUpload, HiTrash, HiSave } from "react-icons/hi";
+import { HiSave, HiTrash, HiUpload } from "react-icons/hi";
 import { motion } from "framer-motion";
 import CustomQuillEditor from "@/components/Editor/CustomQuillEditor";
 import AuthCheck from "@/components/Auth/AuthCheck";
-import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-  DroppableProvided,
-  DraggableProvided,
-} from "react-beautiful-dnd";
 
 interface AboutContent {
   id?: number;
   title: string;
   content: string;
   images: string[];
-}
-
-interface ImageItem {
-  id: string;
-  url: string;
 }
 
 export default function AboutPage() {
@@ -35,9 +23,8 @@ export default function AboutPage() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [previewUrls, setPreviewUrls] = useState<ImageItem[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   useEffect(() => {
@@ -76,17 +63,10 @@ export default function AboutPage() {
       if (imagesError) throw imagesError;
 
       if (aboutData) {
-        const imageItems =
-          imagesData?.map((img, index) => ({
-            id: `image-${index}`,
-            url: img.url,
-          })) || [];
-
         setContent({
           ...aboutData,
-          images: imageItems.map((item) => item.url),
+          images: imagesData?.map((img) => img.url) || [],
         });
-        setPreviewUrls(imageItems);
       }
     } catch (error) {
       console.error("Error cargando contenido:", error);
@@ -95,97 +75,8 @@ export default function AboutPage() {
     }
   };
 
-  const handleImageUpload = async (file: File) => {
-    try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `about/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("images")
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("images").getPublicUrl(filePath);
-
-      setContent((prev) => ({
-        ...prev,
-        images: [...prev.images, publicUrl],
-      }));
-      setPreviewUrls((prev) => [
-        ...prev,
-        { id: `image-${Date.now()}`, url: publicUrl },
-      ]);
-    } catch (error) {
-      console.error("Error subiendo imagen:", error);
-    }
-  };
-
-  const handleImageDelete = async (url: string) => {
-    try {
-      const path = url.split("/").pop();
-      if (!path) return;
-
-      await supabase.storage.from("images").remove([`about/${path}`]);
-      await supabase.from("images").delete().eq("url", url);
-
-      setContent((prev) => ({
-        ...prev,
-        images: prev.images.filter((img) => img !== url),
-      }));
-      setPreviewUrls((prev) => prev.filter((item) => item.url !== url));
-      setHasUnsavedChanges(true);
-    } catch (error) {
-      console.error("Error eliminando imagen:", error);
-    }
-  };
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      // Guardar el contenido principal
-      const { error: aboutError } = await supabase.from("about").upsert({
-        id: content.id,
-        title: content.title,
-        content: content.content,
-        updated_at: new Date().toISOString(),
-      });
-
-      if (aboutError) throw aboutError;
-
-      // Por ahora, solo actualizamos las URLs de las imágenes
-      const { error: imagesError } = await supabase
-        .from("images")
-        .delete()
-        .eq("section", "about")
-        .then(() =>
-          supabase.from("images").insert(
-            previewUrls.map((item) => ({
-              url: item.url,
-              section: "about",
-              alt: `Imagen ${item.id}`,
-            }))
-          )
-        );
-
-      if (imagesError) throw imagesError;
-
-      setHasUnsavedChanges(false);
-      alert("Cambios guardados correctamente");
-    } catch (error) {
-      console.error("Error guardando cambios:", error);
-      alert("Error al guardar los cambios");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleMultipleImageUpload = async (files: FileList) => {
-    setIsSaving(true);
-    setError(null);
+  const handleImageUpload = async (files: FileList) => {
+    setIsUploading(true);
     try {
       const uploadPromises = Array.from(files).map(async (file) => {
         const fileExt = file.name.split(".").pop();
@@ -202,66 +93,142 @@ export default function AboutPage() {
           data: { publicUrl },
         } = supabase.storage.from("images").getPublicUrl(filePath);
 
-        // Insertar en la tabla images
-        await supabase.from("images").insert({
-          url: publicUrl,
-          section: "about",
-          alt: file.name.split(".")[0],
-        });
-
-        return { id: `image-${Date.now()}`, url: publicUrl };
+        return publicUrl;
       });
 
-      const newItems = await Promise.all(uploadPromises);
-      console.log(
-        "Nuevas URLs:",
-        newItems.map((item) => item.url)
-      ); // Para debug
-
-      // Actualizar estados
+      const newImageUrls = await Promise.all(uploadPromises);
       setContent((prev) => ({
         ...prev,
-        images: [...prev.images, ...newItems.map((item) => item.url)],
+        images: [...prev.images, ...newImageUrls],
       }));
-      setPreviewUrls((prev) => [...prev, ...newItems]);
-
-      await handleSave();
+      setHasUnsavedChanges(true);
     } catch (error) {
       console.error("Error subiendo imágenes:", error);
-      setError(
-        error instanceof Error ? error.message : "Error al subir imágenes"
-      );
+      alert("Error al subir las imágenes");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleImageDelete = async (imageUrl: string) => {
+    try {
+      // Extraer el nombre del archivo de la URL
+      const fileName = imageUrl.split("/").pop();
+      if (fileName) {
+        const { error: storageError } = await supabase.storage
+          .from("images")
+          .remove([`about/${fileName}`]);
+
+        if (storageError) throw storageError;
+      }
+
+      // Eliminar de la base de datos
+      const { error: dbError } = await supabase
+        .from("images")
+        .delete()
+        .eq("url", imageUrl);
+
+      if (dbError) throw dbError;
+
+      // Actualizar estado local
+      setContent((prev) => ({
+        ...prev,
+        images: prev.images.filter((url) => url !== imageUrl),
+      }));
+      setHasUnsavedChanges(true);
+    } catch (error) {
+      console.error("Error eliminando imagen:", error);
+      alert("Error al eliminar la imagen");
+    }
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      // Guardar el contenido principal
+      let aboutId = content.id;
+      if (!aboutId) {
+        // Si no existe, crear el registro
+        const { data: aboutData, error: aboutError } = await supabase
+          .from("about")
+          .insert({
+            title: content.title,
+            content: content.content,
+            updated_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+        if (aboutError) throw aboutError;
+        aboutId = aboutData.id;
+      } else {
+        const { error: aboutError } = await supabase.from("about").upsert({
+          id: aboutId,
+          title: content.title,
+          content: content.content,
+          updated_at: new Date().toISOString(),
+        });
+        if (aboutError) throw aboutError;
+      }
+
+      // Guardar imágenes en la base de datos
+      if (aboutId) {
+        for (const imageUrl of content.images) {
+          // Verificar si la imagen ya existe en la base de datos
+          const { data: existingImage } = await supabase
+            .from("images")
+            .select("id")
+            .eq("url", imageUrl)
+            .single();
+
+          if (!existingImage) {
+            // Si no existe, insertarla
+            const { error: imageError } = await supabase.from("images").insert({
+              url: imageUrl,
+              alt: `Imagen de ${content.title}`,
+              section: "about",
+              section_id: aboutId,
+            });
+            if (imageError) throw imageError;
+          }
+        }
+      }
+
+      setHasUnsavedChanges(false);
+      alert("Cambios guardados correctamente");
+      loadAboutContent();
+    } catch (error) {
+      console.error("Error guardando cambios:", error);
+      alert("Error al guardar los cambios");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDragEnd = (result: any) => {
-    if (!result.destination) return;
-
-    const items = Array.from(previewUrls);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-
-    setPreviewUrls(items);
-    setContent((prev) => ({
-      ...prev,
-      images: items.map((item) => item.url),
-    }));
-    setHasUnsavedChanges(true);
-  };
-
-  if (error) {
+  if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64 text-red-500">
-        {error}
-      </div>
+      <AuthCheck>
+        <div className="min-h-screen bg-bg-primary">
+          <div className="container mx-auto px-6 py-8">
+            <div className="flex justify-center items-center h-64">
+              <p className="text-lg text-bg-secondary">Cargando...</p>
+            </div>
+          </div>
+        </div>
+      </AuthCheck>
     );
   }
 
-  if (isLoading) {
+  if (error) {
     return (
-      <div className="flex justify-center items-center h-64">Cargando...</div>
+      <AuthCheck>
+        <div className="min-h-screen bg-bg-primary">
+          <div className="container mx-auto px-6 py-8">
+            <div className="flex justify-center items-center h-64">
+              <p className="text-lg text-red-500">{error}</p>
+            </div>
+          </div>
+        </div>
+      </AuthCheck>
     );
   }
 
@@ -269,26 +236,20 @@ export default function AboutPage() {
     <AuthCheck>
       <div className="min-h-screen bg-bg-primary">
         <div className="container mx-auto px-6 py-8">
-          {/* Agregamos el encabezado */}
-          <div className="flex justify-between items-center mb-8 pt-8">
-            <h1 className="text-3xl font-bevietnam font-bold text-bg-secondary">
-              Administrar About
-            </h1>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-4xl mx-auto"
+          >
+            <div className="bg-white rounded-lg shadow-lg p-8">
+              <h1 className="text-3xl font-bold text-bg-secondary mb-8 font-bevietnam">
+                Editar Sección About
+              </h1>
 
-          {/* Resto del contenido */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="max-w-4xl mx-auto">
-              <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-bg-secondary font-bevietnam">
-                  Editar Información General
-                </h1>
-              </div>
-
-              <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="space-y-6">
                 {/* Título */}
-                <div className="mb-6">
-                  <label className="block text-sm font-medium mb-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Título
                   </label>
                   <input
@@ -298,156 +259,100 @@ export default function AboutPage() {
                       setContent({ ...content, title: e.target.value });
                       setHasUnsavedChanges(true);
                     }}
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none font-bevietnam"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-accent-blue"
                   />
                 </div>
 
-                {/* Editor de contenido */}
-                <div className="mb-6">
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="block text-sm font-medium">
-                      Contenido
-                    </label>
-                  </div>
+                {/* Contenido */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Contenido
+                  </label>
                   <CustomQuillEditor
                     value={content.content}
                     onChange={(value) => {
                       setContent({ ...content, content: value });
                       setHasUnsavedChanges(true);
                     }}
-                    className="h-64"
                   />
                 </div>
 
-                {/* Gestor de imágenes */}
+                {/* Subida de imágenes */}
                 <div>
-                  <label className="block text-sm font-medium mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Imágenes
                   </label>
 
-                  {/* Grid de imágenes existentes */}
-                  <DragDropContext onDragEnd={handleDragEnd}>
-                    <Droppable droppableId="images" direction="horizontal">
-                      {(provided: DroppableProvided) => (
-                        <div
-                          {...provided.droppableProps}
-                          ref={provided.innerRef}
-                          className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4"
-                          style={{ display: "grid" }}
-                        >
-                          {previewUrls.map((item, index) => (
-                            <Draggable
-                              key={item.id}
-                              draggableId={item.id}
-                              index={index}
-                            >
-                              {(provided: DraggableProvided) => (
-                                <div
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
-                                  className="relative group cursor-move"
-                                  style={{ ...provided.draggableProps.style }}
-                                >
-                                  <img
-                                    src={item.url}
-                                    alt={`Imagen ${index + 1}`}
-                                    className="w-full h-40 object-cover rounded-lg"
-                                  />
-                                  <button
-                                    onClick={() => handleImageDelete(item.url)}
-                                    className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                  >
-                                    <HiTrash className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              )}
-                            </Draggable>
-                          ))}
-                          {provided.placeholder}
-                        </div>
-                      )}
-                    </Droppable>
-                  </DragDropContext>
-
-                  {/* Zona de drop para nuevas imágenes */}
-                  <label className="flex justify-center w-full h-32 px-4 transition bg-white border-2 border-gray-300 border-dashed rounded-md appearance-none cursor-pointer hover:border-accent-blue focus:outline-none">
-                    <span className="flex items-center space-x-2">
-                      <HiUpload className="w-6 h-6 text-gray-600" />
-                      <span className="font-medium text-gray-600">
-                        Arrastra las imágenes aquí o haz clic para seleccionar
-                      </span>
-                    </span>
+                  {/* Área de upload */}
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center mb-4">
+                    <HiUpload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                    <p className="text-sm text-gray-600 mb-2">
+                      Arrastra imágenes aquí o haz clic para seleccionar
+                    </p>
                     <input
                       type="file"
-                      accept="image/*"
                       multiple
-                      className="hidden"
+                      accept="image/*"
                       onChange={(e) => {
-                        const files = e.target.files;
-                        if (files && files.length > 0)
-                          handleMultipleImageUpload(files);
+                        if (e.target.files) {
+                          handleImageUpload(e.target.files);
+                        }
                       }}
+                      disabled={isUploading}
+                      className="hidden"
+                      id="file-upload"
                     />
-                  </label>
-                  <p className="mt-2 text-sm text-gray-500">
-                    Puedes seleccionar múltiples imágenes a la vez
-                  </p>
-                </div>
-              </div>
+                    <label
+                      htmlFor="file-upload"
+                      className="cursor-pointer inline-flex items-center px-4 py-2 bg-accent-blue text-white rounded-lg hover:bg-accent-blue/90 transition-colors"
+                    >
+                      {isUploading ? "Subiendo..." : "Seleccionar Imágenes"}
+                    </label>
+                  </div>
 
-              {/* Preview Section */}
-              <div className="mt-8 border-t pt-8">
-                <h2 className="text-xl font-bold text-bg-secondary font-bevietnam mb-6">
-                  Vista previa
-                </h2>
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                    {/* Contenido */}
-                    <div>
-                      <h2 className="text-2xl font-bold text-bg-secondary font-bevietnam mb-4">
-                        {content.title || "Título"}
-                      </h2>
-                      <div
-                        className="prose prose-lg"
-                        dangerouslySetInnerHTML={{
-                          __html: content.content || "",
-                        }}
-                      />
-                    </div>
+                  {/* Grid de imágenes */}
+                  {content.images.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {content.images.map((imageUrl, index) => (
+                        <div key={index} className="relative group">
+                          <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
+                            <img
+                              src={imageUrl}
+                              alt={`Imagen ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
 
-                    {/* Imágenes */}
-                    <div className="grid grid-cols-2 gap-4">
-                      {previewUrls.map((item, index) => (
-                        <img
-                          key={item.id}
-                          src={item.url}
-                          alt={`Imagen ${index + 1}`}
-                          className="w-full h-40 object-cover rounded-lg"
-                        />
+                          {/* Overlay con botón de eliminar */}
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <button
+                              onClick={() => handleImageDelete(imageUrl)}
+                              className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                              title="Eliminar imagen"
+                            >
+                              <HiTrash className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
                       ))}
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Botón de guardar */}
-                <div className="mt-8 flex justify-end">
+                <div className="flex justify-end pt-6">
                   <button
                     onClick={handleSave}
                     disabled={isSaving || !hasUnsavedChanges}
-                    className={`flex items-center gap-2 px-6 py-3 rounded-md transition-colors ${
-                      hasUnsavedChanges
-                        ? "bg-accent-green text-white hover:bg-opacity-90"
-                        : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                    }`}
+                    className="flex items-center px-6 py-3 bg-accent-blue text-white rounded-lg hover:bg-accent-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    <HiSave className="w-5 h-5" />
+                    <HiSave className="w-5 h-5 mr-2" />
                     {isSaving ? "Guardando..." : "Guardar Cambios"}
                   </button>
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </AuthCheck>

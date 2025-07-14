@@ -35,10 +35,34 @@ export default function CallsPage() {
 
   const loadCallsContent = async () => {
     try {
-      const { data, error } = await supabase.from("calls").select("*").single();
+      // Obtener el registro más reciente en lugar de usar .single()
+      const { data, error } = await supabase
+        .from("calls")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
 
-      if (error) throw error;
-      if (data) {
+      if (error) {
+        // Si no hay registros, usar valores por defecto
+        if (error.code === "PGRST116") {
+          console.log(
+            "No hay convocatorias existentes, usando valores por defecto"
+          );
+          setContent({
+            id: undefined,
+            is_active: false,
+            deadline: "",
+            location: "",
+            form_link: "",
+            title: "Convocatoria Abierta",
+            description:
+              "¡Participa en la próxima edición de la Feria de Fotografía!",
+          });
+        } else {
+          throw error;
+        }
+      } else if (data) {
         console.log("Datos cargados:", data);
         setContent({
           ...data,
@@ -47,6 +71,17 @@ export default function CallsPage() {
       }
     } catch (error) {
       console.error("Error cargando contenido:", error);
+      // En caso de error, usar valores por defecto
+      setContent({
+        id: undefined,
+        is_active: false,
+        deadline: "",
+        location: "",
+        form_link: "",
+        title: "Convocatoria Abierta",
+        description:
+          "¡Participa en la próxima edición de la Feria de Fotografía!",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -55,12 +90,13 @@ export default function CallsPage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      // Preparar datos para guardar, manejando fechas vacías
       const dataToSave = {
         id: content.id,
         is_active: Boolean(content.is_active),
-        deadline: content.deadline,
+        deadline: content.deadline || null, // Si la fecha está vacía, usar null
         location: content.location || null,
-        form_link: content.form_link,
+        form_link: content.form_link || "",
         title: content.title,
         description: content.description,
       };

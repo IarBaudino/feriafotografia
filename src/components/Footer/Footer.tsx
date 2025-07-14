@@ -1,7 +1,7 @@
-'use client'
-import { motion } from 'framer-motion';
-import { FaInstagram, FaEnvelope } from 'react-icons/fa';
-import Link from 'next/link';
+"use client";
+import { motion } from "framer-motion";
+import { FaInstagram, FaEnvelope } from "react-icons/fa";
+import Link from "next/link";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -15,20 +15,26 @@ export default function Footer() {
             <h3 className="font-bevietnam font-bold text-lg">Contacto</h3>
             <div className="flex flex-col md:flex-row items-center gap-6">
               <a
-                href="https://instagram.com/feriafotografia"
+                href="https://www.instagram.com/feriadefotografia?igsh=MXA2amJyaGtqZXo3Mg=="
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 hover:text-accent-blue transition-colors font-joly italic group"
               >
-                <FaInstagram size={18} className="group-hover:rotate-12 transition-transform" />
-                @feriafotografia
+                <FaInstagram
+                  size={18}
+                  className="group-hover:rotate-12 transition-transform"
+                />
+                @feriadefotografia
               </a>
               <a
-                href="mailto:contacto@feriafotografia.com"
+                href="mailto:feriadefotografia@gmail.com"
                 className="flex items-center gap-2 hover:text-accent-blue transition-colors font-joly italic group"
               >
-                <FaEnvelope size={18} className="group-hover:rotate-12 transition-transform" />
-                contacto@feriafotografia.com
+                <FaEnvelope
+                  size={18}
+                  className="group-hover:rotate-12 transition-transform"
+                />
+                feriadefotografia@gmail.com
               </a>
             </div>
           </div>
@@ -41,19 +47,7 @@ export default function Footer() {
               © {currentYear} Feria Fotografía. Todos los derechos reservados.
             </p>
             <div className="flex gap-4">
-              <Link 
-                href="/privacidad"
-                className="text-sm font-bevietnam font-normal text-bg-primary/80 hover:text-accent-blue transition-colors"
-              >
-                Política de Privacidad
-              </Link>
-              <Link 
-                href="/terminos"
-                className="text-sm font-bevietnam font-normal text-bg-primary/80 hover:text-accent-blue transition-colors"
-              >
-                Términos y Condiciones
-              </Link>
-              <Link 
+              <Link
                 href="/admin/login"
                 className="text-sm font-bevietnam font-normal text-bg-primary/60 hover:text-accent-blue transition-colors"
               >
@@ -65,4 +59,4 @@ export default function Footer() {
       </div>
     </footer>
   );
-} 
+}
