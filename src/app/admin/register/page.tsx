@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
 // Configuración local para evitar problemas de importación
-const AUTHORIZED_EMAILS = ["feriadefotografia@gmail.com"];
+const AUTHORIZED_EMAILS: string[] = ["feriadefotografia@gmail.com"];
 const PASSWORD_MIN_LENGTH = 6;
 
 const isEmailAuthorized = (email: string): boolean => {
