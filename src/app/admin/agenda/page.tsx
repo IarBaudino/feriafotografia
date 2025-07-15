@@ -39,6 +39,7 @@ export default function AdminAgendaPage() {
   const [newCategory, setNewCategory] = useState<Partial<Category>>({
     name: "",
   });
+  const [showPastEvents, setShowPastEvents] = useState(true);
 
   useEffect(() => {
     loadCategories();
@@ -84,6 +85,14 @@ export default function AdminAgendaPage() {
     }
   };
 
+  // Función para verificar si un evento ya pasó
+  const isEventPast = (eventDate: string) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Resetear a inicio del día
+    const eventDateObj = new Date(eventDate);
+    return eventDateObj < today;
+  };
+
   const handleCreate = () => {
     setCurrentEvent({
       type: "",
@@ -92,6 +101,7 @@ export default function AdminAgendaPage() {
       description: "",
       location: "",
       category_name: "",
+      link: "",
     });
     setIsEditing(true);
     setHasUnsavedChanges(true);
@@ -218,6 +228,15 @@ export default function AdminAgendaPage() {
                   </option>
                 ))}
               </select>
+              <label className="flex items-center gap-2 px-4 py-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                <input
+                  type="checkbox"
+                  checked={showPastEvents}
+                  onChange={(e) => setShowPastEvents(e.target.checked)}
+                  className="rounded"
+                />
+                <span className="text-sm">Mostrar eventos pasados</span>
+              </label>
               <button
                 onClick={handleCreate}
                 className="flex items-center gap-2 px-4 py-2 bg-accent-blue text-white rounded-lg hover:bg-opacity-90"
@@ -434,6 +453,28 @@ export default function AdminAgendaPage() {
 
               <div className="mb-6">
                 <label className="block text-sm font-medium mb-2">
+                  Link del Evento (opcional)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://ejemplo.com/evento"
+                  value={currentEvent.link || ""}
+                  onChange={(e) => {
+                    setCurrentEvent({
+                      ...currentEvent,
+                      link: e.target.value,
+                    });
+                    setHasUnsavedChanges(true);
+                  }}
+                  className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Si no hay link, no se mostrará en la vista pública
+                </p>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-2">
                   Imagen del Evento
                 </label>
                 <div className="flex items-center gap-4">
@@ -514,6 +555,31 @@ export default function AdminAgendaPage() {
                       </p>
                     )}
                     <p className="text-gray-600">{currentEvent.description}</p>
+                    {currentEvent.link && (
+                      <div className="mt-4">
+                        <a
+                          href={currentEvent.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-accent-blue hover:text-accent-blue/80 font-medium"
+                        >
+                          Link del evento
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                            />
+                          </svg>
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -541,47 +607,64 @@ export default function AdminAgendaPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {events.map((event) => (
-                <motion.div
-                  key={event.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-white rounded-xl overflow-hidden shadow-lg"
-                >
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-bg-secondary font-bevietnam mb-2">
-                      {event.type}
-                    </h3>
-                    <div className="flex gap-4 text-accent-blue text-sm mb-4">
-                      <p>{new Date(event.date).toLocaleDateString()}</p>
-                      <p>{event.end_date}</p>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">
-                      {event.location}
-                    </p>
-                    <p className="text-sm text-text-primary/80 mb-4 line-clamp-2">
-                      {event.description}
-                    </p>
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => {
-                          setCurrentEvent(event);
-                          setIsEditing(true);
-                        }}
-                        className="p-2 text-accent-blue hover:bg-accent-blue/10 rounded-lg transition-colors"
-                      >
-                        <HiPencil className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(event.id || "")}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <HiTrash className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+              {events
+                .filter((event) => {
+                  const isPast = isEventPast(event.date);
+                  return showPastEvents || !isPast;
+                })
+                .map((event) => {
+                  const isPast = isEventPast(event.date);
+                  return (
+                    <motion.div
+                      key={event.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`bg-white rounded-xl overflow-hidden shadow-lg ${
+                        isPast ? "opacity-60" : ""
+                      }`}
+                    >
+                      <div className="p-6">
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="text-xl font-bold text-bg-secondary font-bevietnam">
+                            {event.type}
+                          </h3>
+                          {isPast && (
+                            <span className="px-2 py-1 bg-red-100 text-red-600 text-xs font-medium rounded-full">
+                              Pasado
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex gap-4 text-accent-blue text-sm mb-4">
+                          <p>{new Date(event.date).toLocaleDateString()}</p>
+                          <p>{event.end_date}</p>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">
+                          {event.location}
+                        </p>
+                        <p className="text-sm text-text-primary/80 mb-4 line-clamp-2">
+                          {event.description}
+                        </p>
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => {
+                              setCurrentEvent(event);
+                              setIsEditing(true);
+                            }}
+                            className="p-2 text-accent-blue hover:bg-accent-blue/10 rounded-lg transition-colors"
+                          >
+                            <HiPencil className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(event.id || "")}
+                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <HiTrash className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
             </div>
           )}
         </div>

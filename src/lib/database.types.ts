@@ -1,6 +1,44 @@
 export type Database = {
   public: {
     Tables: {
+      calls: {
+        Row: {
+          id: string;
+          created_at: string;
+          is_active: boolean;
+          deadline: string | null;
+          feria_date: string | null;
+          location: string | null;
+          form_link: string;
+          title: string;
+          description: string;
+          horario: string | null;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          is_active?: boolean;
+          deadline?: string | null;
+          feria_date?: string | null;
+          location?: string | null;
+          form_link: string;
+          title: string;
+          description: string;
+          horario?: string | null;
+        };
+        Update: {
+          id?: string;
+          created_at?: string;
+          is_active?: boolean;
+          deadline?: string | null;
+          feria_date?: string | null;
+          location?: string | null;
+          form_link?: string;
+          title?: string;
+          description?: string;
+          horario?: string | null;
+        };
+      };
       exhibitions: {
         Row: {
           id: string;
@@ -37,4 +75,4 @@ export type Database = {
       };
     };
   };
-}; 
+};

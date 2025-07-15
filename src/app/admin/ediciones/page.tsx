@@ -12,6 +12,7 @@ import {
 } from "react-icons/hi";
 import CustomQuillEditor from "@/components/Editor/CustomQuillEditor";
 import AuthCheck from "@/components/Auth/AuthCheck";
+import PinterestGrid from "@/components/ui/PinterestGrid";
 
 interface Edicion {
   id: string;
@@ -22,6 +23,8 @@ interface Edicion {
   location: string;
   participants: number;
   visitors: number;
+  video_url?: string;
+  video_type?: "upload" | "youtube" | "vimeo";
 }
 
 interface PreviewModalProps {
@@ -32,6 +35,21 @@ interface PreviewModalProps {
 
 function PreviewModal({ edicion, isOpen, onClose }: PreviewModalProps) {
   if (!isOpen) return null;
+
+  // Función para extraer ID de YouTube
+  const extractYouTubeId = (url: string): string | null => {
+    const regExp =
+      /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return match && match[2].length === 11 ? match[2] : null;
+  };
+
+  // Función para extraer ID de Vimeo
+  const extractVimeoId = (url: string): string | null => {
+    const regExp = /vimeo\.com\/([0-9]+)/;
+    const match = url.match(regExp);
+    return match ? match[1] : null;
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -53,8 +71,63 @@ function PreviewModal({ edicion, isOpen, onClose }: PreviewModalProps) {
               {edicion.title}
             </h1>
             <p className="text-xl font-joly italic text-accent-blue mb-6">
-              {edicion.date}
+              {edicion.date
+                ? new Date(edicion.date).toLocaleDateString("es-ES", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })
+                : "Sin fecha"}
             </p>
+
+            {/* Video */}
+            {edicion.video_url && (
+              <div className="mb-8">
+                <h3 className="text-lg font-bold text-bg-secondary mb-4">
+                  Video
+                </h3>
+                {edicion.video_type === "upload" ? (
+                  <video
+                    controls
+                    className="w-full max-w-2xl rounded-lg"
+                    src={edicion.video_url}
+                  >
+                    Tu navegador no soporta el elemento video.
+                  </video>
+                ) : edicion.video_type === "youtube" ? (
+                  <div className="w-full max-w-2xl">
+                    <iframe
+                      width="100%"
+                      height="400"
+                      src={`https://www.youtube.com/embed/${extractYouTubeId(
+                        edicion.video_url
+                      )}`}
+                      title="YouTube video"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="rounded-lg"
+                    ></iframe>
+                  </div>
+                ) : edicion.video_type === "vimeo" ? (
+                  <div className="w-full max-w-2xl">
+                    <iframe
+                      width="100%"
+                      height="400"
+                      src={`https://player.vimeo.com/video/${extractVimeoId(
+                        edicion.video_url
+                      )}`}
+                      title="Vimeo video"
+                      frameBorder="0"
+                      allow="autoplay; fullscreen; picture-in-picture"
+                      allowFullScreen
+                      className="rounded-lg"
+                    ></iframe>
+                  </div>
+                ) : null}
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <div
@@ -94,6 +167,8 @@ const EMPTY_EDICION: Edicion = {
   location: "",
   participants: 0,
   visitors: 0,
+  video_url: "",
+  video_type: undefined,
 };
 
 export default function EdicionesAdminPage() {
@@ -106,6 +181,7 @@ export default function EdicionesAdminPage() {
     {}
   );
   const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [previewModal, setPreviewModal] = useState<{
     isOpen: boolean;
     edicion: Edicion | null;
@@ -232,6 +308,118 @@ export default function EdicionesAdminPage() {
     }
   };
 
+  // Función para extraer ID de YouTube
+  const extractYouTubeId = (url: string): string | null => {
+    const regExp =
+      /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return match && match[2].length === 11 ? match[2] : null;
+  };
+
+  // Función para extraer ID de Vimeo
+  const extractVimeoId = (url: string): string | null => {
+    const regExp = /vimeo\.com\/([0-9]+)/;
+    const match = url.match(regExp);
+    return match ? match[1] : null;
+  };
+
+  // Función para validar URL de video
+  const validateVideoUrl = (
+    url: string
+  ): { isValid: boolean; type: "youtube" | "vimeo" | undefined } => {
+    if (extractYouTubeId(url)) {
+      return { isValid: true, type: "youtube" };
+    }
+    if (extractVimeoId(url)) {
+      return { isValid: true, type: "vimeo" };
+    }
+    return { isValid: false, type: undefined };
+  };
+
+  // Función para subir video
+  const handleVideoUpload = async (file: File) => {
+    if (!currentEdicion) {
+      alert("Por favor, selecciona una edición para subir el video");
+      return;
+    }
+
+    // Validar tipo de archivo
+    const validTypes = [
+      "video/mp4",
+      "video/webm",
+      "video/ogg",
+      "video/quicktime",
+    ];
+    if (!validTypes.includes(file.type)) {
+      alert("Por favor, sube un archivo de video válido (MP4, WebM, OGG, MOV)");
+      return;
+    }
+
+    // Validar tamaño (máximo 100MB)
+    if (file.size > 100 * 1024 * 1024) {
+      alert("El video no puede ser mayor a 100MB");
+      return;
+    }
+
+    setIsUploadingVideo(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
+      const filePath = `editions/videos/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("images") // Usamos el mismo bucket que las imágenes
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("images").getPublicUrl(filePath);
+
+      setCurrentEdicion({
+        ...currentEdicion,
+        video_url: publicUrl,
+        video_type: "upload",
+      });
+      setHasUnsavedChanges(true);
+    } catch (error) {
+      console.error("Error subiendo video:", error);
+      alert("Error al subir el video");
+    } finally {
+      setIsUploadingVideo(false);
+    }
+  };
+
+  // Función para eliminar video
+  const handleVideoDelete = async () => {
+    if (!currentEdicion || !currentEdicion.video_url) return;
+
+    try {
+      if (currentEdicion.video_type === "upload") {
+        // Extraer el nombre del archivo de la URL
+        const fileName = currentEdicion.video_url.split("/").pop();
+        if (fileName) {
+          const { error: storageError } = await supabase.storage
+            .from("images")
+            .remove([`editions/videos/${fileName}`]);
+
+          if (storageError) throw storageError;
+        }
+      }
+
+      setCurrentEdicion({
+        ...currentEdicion,
+        video_url: "",
+        video_type: undefined,
+      });
+      setHasUnsavedChanges(true);
+    } catch (error) {
+      console.error("Error eliminando video:", error);
+      alert("Error al eliminar el video");
+    }
+  };
+
   const handleSave = async () => {
     if (!currentEdicion) return;
 
@@ -252,6 +440,8 @@ export default function EdicionesAdminPage() {
             location: currentEdicion.location,
             participants: currentEdicion.participants,
             visitors: currentEdicion.visitors,
+            video_url: currentEdicion.video_url || null,
+            video_type: currentEdicion.video_type || null,
           })
           .select()
           .single();
@@ -271,6 +461,8 @@ export default function EdicionesAdminPage() {
             location: currentEdicion.location,
             participants: currentEdicion.participants,
             visitors: currentEdicion.visitors,
+            video_url: currentEdicion.video_url || null,
+            video_type: currentEdicion.video_type || null,
           })
           .eq("id", edicionId);
 
@@ -383,7 +575,7 @@ export default function EdicionesAdminPage() {
   return (
     <AuthCheck>
       <div className="min-h-screen bg-bg-primary">
-        <div className="container mx-auto px-6 py-8">
+        <div className="container mx-auto px-6 py-8 pt-20">
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold text-bg-secondary font-bevietnam">
               Administrar Ediciones
@@ -524,6 +716,153 @@ export default function EdicionesAdminPage() {
                         }}
                       />
                     </div>
+
+                    {/* Sección de Video */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Video (opcional)
+                      </label>
+
+                      {/* Video actual */}
+                      {currentEdicion.video_url && (
+                        <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-700">
+                              Video actual:
+                            </span>
+                            <button
+                              onClick={handleVideoDelete}
+                              className="text-red-500 hover:text-red-700 text-sm"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                          {currentEdicion.video_type === "upload" ? (
+                            <video
+                              controls
+                              className="w-full max-w-md rounded"
+                              src={currentEdicion.video_url}
+                            >
+                              Tu navegador no soporta el elemento video.
+                            </video>
+                          ) : currentEdicion.video_type === "youtube" ? (
+                            <div className="w-full max-w-md">
+                              <iframe
+                                width="100%"
+                                height="200"
+                                src={`https://www.youtube.com/embed/${extractYouTubeId(
+                                  currentEdicion.video_url
+                                )}`}
+                                title="YouTube video"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                className="rounded"
+                              ></iframe>
+                            </div>
+                          ) : currentEdicion.video_type === "vimeo" ? (
+                            <div className="w-full max-w-md">
+                              <iframe
+                                width="100%"
+                                height="200"
+                                src={`https://player.vimeo.com/video/${extractVimeoId(
+                                  currentEdicion.video_url
+                                )}`}
+                                title="Vimeo video"
+                                frameBorder="0"
+                                allow="autoplay; fullscreen; picture-in-picture"
+                                allowFullScreen
+                                className="rounded"
+                              ></iframe>
+                            </div>
+                          ) : null}
+                        </div>
+                      )}
+
+                      {/* Opciones para agregar video */}
+                      <div className="space-y-4">
+                        {/* Subir video */}
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                          <HiUpload className="mx-auto h-6 w-6 text-gray-400 mb-2" />
+                          <p className="text-sm text-gray-600 mb-2">
+                            Subir video (máx. 100MB)
+                          </p>
+                          <input
+                            type="file"
+                            accept="video/*"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                handleVideoUpload(e.target.files[0]);
+                              }
+                            }}
+                            disabled={isUploadingVideo}
+                            className="hidden"
+                            id="video-upload"
+                          />
+                          <label
+                            htmlFor="video-upload"
+                            className="cursor-pointer inline-flex items-center px-3 py-1 bg-accent-blue text-white rounded text-sm hover:bg-accent-blue/90 transition-colors"
+                          >
+                            {isUploadingVideo ? "Subiendo..." : "Subir Video"}
+                          </label>
+                        </div>
+
+                        {/* O separador */}
+                        <div className="relative">
+                          <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-gray-300" />
+                          </div>
+                          <div className="relative flex justify-center text-sm">
+                            <span className="px-2 bg-white text-gray-500">
+                              O
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Link de YouTube/Vimeo */}
+                        <div>
+                          <input
+                            type="url"
+                            placeholder="Pega aquí el link de YouTube o Vimeo"
+                            value={
+                              currentEdicion.video_url &&
+                              currentEdicion.video_type !== "upload"
+                                ? currentEdicion.video_url
+                                : ""
+                            }
+                            onChange={(e) => {
+                              const url = e.target.value;
+                              if (url) {
+                                const validation = validateVideoUrl(url);
+                                if (validation.isValid) {
+                                  setCurrentEdicion({
+                                    ...currentEdicion,
+                                    video_url: url,
+                                    video_type: validation.type,
+                                  });
+                                  setHasUnsavedChanges(true);
+                                } else {
+                                  alert(
+                                    "Por favor, ingresa un link válido de YouTube o Vimeo"
+                                  );
+                                }
+                              } else {
+                                setCurrentEdicion({
+                                  ...currentEdicion,
+                                  video_url: "",
+                                  video_type: undefined,
+                                });
+                                setHasUnsavedChanges(true);
+                              }
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-accent-blue text-sm"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Soporta links de YouTube y Vimeo
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Gestión de imágenes */}
@@ -561,33 +900,23 @@ export default function EdicionesAdminPage() {
                       </label>
                     </div>
 
-                    {/* Grid de imágenes */}
+                    {/* Grid de imágenes estilo Pinterest */}
                     {edicionImages[currentEdicion.id]?.length > 0 && (
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {edicionImages[currentEdicion.id].map(
-                          (imageUrl, index) => (
-                            <div key={index} className="relative group">
-                              <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
-                                <img
-                                  src={imageUrl}
-                                  alt={`Imagen ${index + 1}`}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-
-                              {/* Overlay con botón de eliminar */}
-                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <button
-                                  onClick={() => handleImageDelete(imageUrl)}
-                                  className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                  title="Eliminar imagen"
-                                >
-                                  <HiTrash className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                          )
-                        )}
+                      <div className="relative">
+                        <PinterestGrid
+                          images={edicionImages[currentEdicion.id].map(
+                            (url, index) => ({
+                              id: `edicion-${index}`,
+                              url,
+                              alt: `Imagen ${index + 1} de ${
+                                currentEdicion.title
+                              }`,
+                            })
+                          )}
+                          onDeleteImage={handleImageDelete}
+                          showDeleteButtons={true}
+                          className="mb-4"
+                        />
                       </div>
                     )}
 
@@ -623,7 +952,16 @@ export default function EdicionesAdminPage() {
                       {currentEdicion.title || "Título de la Edición"}
                     </h1>
                     <p className="text-xl font-joly italic text-accent-blue mb-6">
-                      {currentEdicion.date || "Fecha"}
+                      {currentEdicion.date
+                        ? new Date(currentEdicion.date).toLocaleDateString(
+                            "es-ES",
+                            {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            }
+                          )
+                        : "Fecha"}
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div>
@@ -659,22 +997,17 @@ export default function EdicionesAdminPage() {
                       <h3 className="text-lg font-bold text-bg-secondary font-bevietnam mb-4">
                         Imágenes ({edicionImages[currentEdicion.id].length})
                       </h3>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {edicionImages[currentEdicion.id].map(
-                          (imageUrl, index) => (
-                            <div
-                              key={index}
-                              className="aspect-square rounded-lg overflow-hidden bg-gray-100"
-                            >
-                              <img
-                                src={imageUrl}
-                                alt={`Imagen ${index + 1}`}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          )
+                      <PinterestGrid
+                        images={edicionImages[currentEdicion.id].map(
+                          (url, index) => ({
+                            id: `preview-edicion-${index}`,
+                            url,
+                            alt: `Imagen ${index + 1} de ${
+                              currentEdicion.title
+                            }`,
+                          })
                         )}
-                      </div>
+                      />
                     </div>
                   )}
                 </div>
@@ -695,7 +1028,14 @@ export default function EdicionesAdminPage() {
                         {edicion.title}
                       </h3>
                       <p className="text-text-primary/80 font-bevietnam mb-2">
-                        {edicion.date} • {edicion.location}
+                        {edicion.date
+                          ? new Date(edicion.date).toLocaleDateString("es-ES", {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })
+                          : "Sin fecha"}{" "}
+                        • {edicion.location}
                       </p>
                       <p className="text-text-primary font-bevietnam">
                         {edicion.participants} participantes •{" "}

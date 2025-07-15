@@ -7,10 +7,12 @@ interface CallsContent {
   id?: string;
   is_active: boolean;
   deadline: string;
+  feria_date?: string;
   location: string;
   form_link: string;
   title: string;
   description: string;
+  horario?: string;
   created_at?: string;
 }
 
@@ -105,7 +107,7 @@ export default function Calls() {
           Convocatorias
         </motion.h2>
 
-        {Boolean(callData?.is_active) ? (
+        {callData && (callData.is_active || callData.feria_date) ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -113,34 +115,60 @@ export default function Calls() {
             className="bg-bg-primary rounded-lg p-8"
           >
             <h3 className="text-2xl font-bevietnam font-bold mb-4 text-bg-secondary">
-              {callData?.title}
+              {callData.title}
             </h3>
             <div
               className="text-text-primary font-bevietnam font-normal mb-6"
               dangerouslySetInnerHTML={{
-                __html: callData?.description || "",
+                __html: callData.description || "",
               }}
             />
             <div className="space-y-4">
               <p className="font-bevietnam font-thin italic">
-                Fecha límite:{" "}
+                Fecha límite de inscripción:{" "}
                 <span className="font-joly italic">
-                  {callData?.deadline ? formatDate(callData.deadline) : ""}
+                  {callData.deadline ? formatDate(callData.deadline) : ""}
                 </span>
               </p>
               <p className="font-bevietnam font-thin italic">
-                Lugar: <span className="text-thin">{callData?.location}</span>
+                Fecha de la feria:{" "}
+                <span className="font-joly italic">
+                  {callData.feria_date
+                    ? formatDate(callData.feria_date)
+                    : "Por confirmar"}
+                </span>
+              </p>
+              <p className="font-bevietnam font-thin italic">
+                Lugar: <span className="text-thin">{callData.location}</span>
+              </p>
+              <p className="font-bevietnam font-thin italic">
+                Horario:{" "}
+                <span className="font-joly italic">
+                  {callData.horario || "Por confirmar"}
+                </span>
               </p>
             </div>
-            <a
-              href={callData?.form_link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block bg-bg-secondary text-bg-primary px-6 py-3 rounded-lg 
-                       hover:bg-accent-blue transition-colors duration-300 mt-6 font-bevietnam font-bold"
-            >
-              Inscríbete aquí
-            </a>
+            {callData.is_active ? (
+              <a
+                href={callData.form_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block bg-bg-secondary text-bg-primary px-6 py-3 rounded-lg 
+                         hover:bg-accent-blue transition-colors duration-300 mt-6 font-bevietnam font-bold"
+              >
+                Inscríbete aquí
+              </a>
+            ) : (
+              <div className="mt-8 text-center">
+                <p className="text-text-primary text-lg font-bevietnam font-normal">
+                  La convocatoria está cerrada.
+                </p>
+                <p className="font-joly italic text-accent-blue mt-4">
+                  ¡Te esperamos en la feria para disfrutar de todas las
+                  actividades!
+                </p>
+              </div>
+            )}
           </motion.div>
         ) : (
           <motion.div
@@ -150,12 +178,7 @@ export default function Calls() {
             className="bg-bg-primary rounded-lg p-8"
           >
             <p className="text-text-primary text-center text-lg font-bevietnam font-normal">
-              No hay convocatorias abiertas en este momento.
-              <br />
-              <span className="font-joly italic">
-                ¡Mantente atento a nuestras redes sociales para futuras
-                convocatorias!
-              </span>
+              ¡Estate atentx a la próxima convocatoria!
             </p>
           </motion.div>
         )}

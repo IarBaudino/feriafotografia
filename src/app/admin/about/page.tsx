@@ -6,6 +6,7 @@ import { HiSave, HiTrash, HiUpload } from "react-icons/hi";
 import { motion } from "framer-motion";
 import CustomQuillEditor from "@/components/Editor/CustomQuillEditor";
 import AuthCheck from "@/components/Auth/AuthCheck";
+import PinterestGrid from "@/components/ui/PinterestGrid";
 
 interface AboutContent {
   id?: number;
@@ -310,32 +311,18 @@ export default function AboutPage() {
                     </label>
                   </div>
 
-                  {/* Grid de imágenes */}
+                  {/* Grid de imágenes estilo Pinterest */}
                   {content.images.length > 0 && (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {content.images.map((imageUrl, index) => (
-                        <div key={index} className="relative group">
-                          <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
-                            <img
-                              src={imageUrl}
-                              alt={`Imagen ${index + 1}`}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-
-                          {/* Overlay con botón de eliminar */}
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <button
-                              onClick={() => handleImageDelete(imageUrl)}
-                              className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                              title="Eliminar imagen"
-                            >
-                              <HiTrash className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    <PinterestGrid
+                      images={content.images.map((url, index) => ({
+                        id: `about-${index}`,
+                        url,
+                        alt: `Imagen ${index + 1} de ${content.title}`,
+                      }))}
+                      className="mb-4"
+                      showDeleteButtons={true}
+                      onDeleteImage={handleImageDelete}
+                    />
                   )}
                 </div>
 
@@ -382,20 +369,13 @@ export default function AboutPage() {
                 Imágenes ({content.images.length})
               </h3>
               {content.images.length > 0 ? (
-                <div className="grid grid-cols-2 gap-4">
-                  {content.images.map((imageUrl, index) => (
-                    <div
-                      key={index}
-                      className="aspect-square rounded-lg overflow-hidden bg-gray-100"
-                    >
-                      <img
-                        src={imageUrl}
-                        alt={`Imagen ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
+                <PinterestGrid
+                  images={content.images.map((url, index) => ({
+                    id: `preview-${index}`,
+                    url,
+                    alt: `Imagen ${index + 1} de ${content.title}`,
+                  }))}
+                />
               ) : (
                 <p className="text-text-primary/60 font-bevietnam">
                   No hay imágenes cargadas

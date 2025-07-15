@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { HiPlus, HiPencil, HiTrash, HiSave, HiUpload } from "react-icons/hi";
 import CustomQuillEditor from "@/components/Editor/CustomQuillEditor";
 import AuthCheck from "@/components/Auth/AuthCheck";
+import PinterestGrid from "@/components/ui/PinterestGrid";
 
 interface Exposicion {
   id: string;
@@ -286,7 +287,7 @@ export default function ExposicionesAdminPage() {
   return (
     <AuthCheck>
       <div className="min-h-screen bg-bg-primary">
-        <div className="container mx-auto px-6 py-8">
+        <div className="container mx-auto px-6 py-8 pt-20">
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold text-bg-secondary font-bevietnam">
               Administrar Exposiciones
@@ -386,33 +387,37 @@ export default function ExposicionesAdminPage() {
                       </label>
                     </div>
 
-                    {/* Grid de imágenes */}
+                    {/* Grid de imágenes estilo Pinterest */}
                     {exposicionImages[currentExposicion.id]?.length > 0 && (
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {exposicionImages[currentExposicion.id].map(
-                          (imageUrl, index) => (
-                            <div key={index} className="relative group">
-                              <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
-                                <img
-                                  src={imageUrl}
-                                  alt={`Imagen ${index + 1}`}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
+                      <div className="relative">
+                        <PinterestGrid
+                          images={exposicionImages[currentExposicion.id].map(
+                            (url, index) => ({
+                              id: `exposicion-${index}`,
+                              url,
+                              alt: `Imagen ${index + 1} de ${
+                                currentExposicion.title
+                              }`,
+                            })
+                          )}
+                          className="mb-4"
+                        />
 
-                              {/* Overlay con botón de eliminar */}
-                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <button
-                                  onClick={() => handleImageDelete(imageUrl)}
-                                  className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                  title="Eliminar imagen"
-                                >
-                                  <HiTrash className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                          )
-                        )}
+                        {/* Botones de eliminar flotantes */}
+                        <div className="absolute top-2 right-2 flex gap-2">
+                          {exposicionImages[currentExposicion.id].map(
+                            (imageUrl, index) => (
+                              <button
+                                key={index}
+                                onClick={() => handleImageDelete(imageUrl)}
+                                className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                                title="Eliminar imagen"
+                              >
+                                <HiTrash className="w-4 h-4" />
+                              </button>
+                            )
+                          )}
+                        </div>
                       </div>
                     )}
 
@@ -491,22 +496,17 @@ export default function ExposicionesAdminPage() {
                         Imágenes (
                         {exposicionImages[currentExposicion.id].length})
                       </h3>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {exposicionImages[currentExposicion.id].map(
-                          (imageUrl, index) => (
-                            <div
-                              key={index}
-                              className="aspect-square rounded-lg overflow-hidden bg-gray-100"
-                            >
-                              <img
-                                src={imageUrl}
-                                alt={`Imagen ${index + 1}`}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          )
+                      <PinterestGrid
+                        images={exposicionImages[currentExposicion.id].map(
+                          (url, index) => ({
+                            id: `preview-exposicion-${index}`,
+                            url,
+                            alt: `Imagen ${index + 1} de ${
+                              currentExposicion.title
+                            }`,
+                          })
                         )}
-                      </div>
+                      />
                     </div>
                   )}
                 </div>

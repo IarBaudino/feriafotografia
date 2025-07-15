@@ -14,6 +14,8 @@ interface Edicion {
   location: string;
   participants: number;
   visitors: number;
+  video_url?: string;
+  video_type?: "upload" | "youtube" | "vimeo";
 }
 
 interface EdicionImage {
@@ -81,6 +83,21 @@ export default function EdicionesPage() {
   };
 
   const selectedEdicion = ediciones.find((ed) => ed.id === currentEdicion);
+
+  // Función para extraer ID de YouTube
+  const extractYouTubeId = (url: string): string | null => {
+    const regExp =
+      /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return match && match[2].length === 11 ? match[2] : null;
+  };
+
+  // Función para extraer ID de Vimeo
+  const extractVimeoId = (url: string): string | null => {
+    const regExp = /vimeo\.com\/([0-9]+)/;
+    const match = url.match(regExp);
+    return match ? match[1] : null;
+  };
 
   const sidebarSections = [
     {
@@ -175,10 +192,10 @@ export default function EdicionesPage() {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 mb-20">
                 <div className="lg:col-span-7">
                   <div className="prose prose-lg max-w-none">
-                    <div 
+                    <div
                       className="text-xl font-bevietnam text-text-primary/80 leading-relaxed"
                       dangerouslySetInnerHTML={{
-                        __html: selectedEdicion.description
+                        __html: selectedEdicion.description,
                       }}
                     />
                   </div>
@@ -228,6 +245,61 @@ export default function EdicionesPage() {
                 </div>
               </div>
 
+              {/* Video */}
+              {selectedEdicion.video_url && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8 }}
+                  className="mb-20"
+                >
+                  <h3 className="text-2xl font-bevietnam font-bold text-bg-secondary mb-8">
+                    Video de la Edición
+                  </h3>
+                  <div className="max-w-4xl mx-auto">
+                    {selectedEdicion.video_type === "upload" ? (
+                      <video
+                        controls
+                        className="w-full rounded-2xl shadow-2xl"
+                        src={selectedEdicion.video_url}
+                      >
+                        Tu navegador no soporta el elemento video.
+                      </video>
+                    ) : selectedEdicion.video_type === "youtube" ? (
+                      <div className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-2xl">
+                        <iframe
+                          width="100%"
+                          height="100%"
+                          src={`https://www.youtube.com/embed/${extractYouTubeId(
+                            selectedEdicion.video_url
+                          )}`}
+                          title="YouTube video"
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="absolute inset-0"
+                        ></iframe>
+                      </div>
+                    ) : selectedEdicion.video_type === "vimeo" ? (
+                      <div className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-2xl">
+                        <iframe
+                          width="100%"
+                          height="100%"
+                          src={`https://player.vimeo.com/video/${extractVimeoId(
+                            selectedEdicion.video_url
+                          )}`}
+                          title="Vimeo video"
+                          frameBorder="0"
+                          allow="autoplay; fullscreen; picture-in-picture"
+                          allowFullScreen
+                          className="absolute inset-0"
+                        ></iframe>
+                      </div>
+                    ) : null}
+                  </div>
+                </motion.div>
+              )}
+
               {/* Galería de imágenes mejorada */}
               {edicionImages[selectedEdicion.id]?.length > 0 && (
                 <motion.div
@@ -271,11 +343,7 @@ export default function EdicionesPage() {
                           layoutId={`image-${img.id}`}
                         >
                           <div className="relative w-full h-full rounded-lg overflow-hidden">
-                            <motion.div
-                              className="absolute inset-0 bg-gradient-to-t from-bg-secondary/90 via-bg-secondary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10"
-                              initial={{ opacity: 0 }}
-                              whileHover={{ opacity: 1 }}
-                            />
+
 
                             <motion.img
                               src={img.url}
@@ -289,22 +357,7 @@ export default function EdicionesPage() {
                               transition={{ duration: 0.8 }}
                             />
 
-                            <motion.div
-                              className="absolute inset-0 z-20 flex flex-col justify-end p-6 group"
-                              initial={{ opacity: 0, y: 20 }}
-                              whileHover={{ opacity: 1, y: 0 }}
-                              transition={{ duration: 0.3 }}
-                            >
-                              <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                                <p className="text-white text-sm font-bevietnam mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">
-                                  {img.alt ||
-                                    `Imagen ${i + 1} de ${
-                                      selectedEdicion.title
-                                    }`}
-                                </p>
-                                <div className="h-1 w-0 group-hover:w-full bg-accent-blue transition-all duration-500 delay-200" />
-                              </div>
-                            </motion.div>
+
                           </div>
                         </motion.div>
                       );
