@@ -12,7 +12,7 @@ export const AUTH_CONFIG = {
 
   // Configuración de contraseñas
   PASSWORD_MIN_LENGTH: 6,
-} as const;
+};
 
 // Función helper para verificar si un email está autorizado
 export const isEmailAuthorized = (email: string): boolean => {
