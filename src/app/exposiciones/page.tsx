@@ -2,8 +2,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import PublicSidebar from "@/components/Sidebar/PublicSidebar";
-import { createClient } from "@supabase/supabase-js";
-import { Database } from "@/lib/database.types";
+import { getCollection, getDocumentsWithFilter } from "@/lib/firestore-helpers";
 import Image from "next/image";
 import Masonry from "react-masonry-css";
 import "react-quill/dist/quill.snow.css";
@@ -26,11 +25,7 @@ interface ExposicionImage {
   is_main: boolean;
 }
 
-// Tipar el cliente de Supabase
-const supabase = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Firebase ya está configurado en firestore-helpers
 
 export default function ExposicionesPage() {
   const [exposiciones, setExposiciones] = useState<Exposicion[]>([]);
@@ -49,24 +44,28 @@ export default function ExposicionesPage() {
 
   const loadExposiciones = async () => {
     try {
-      const { data: exposicionesData, error: exposicionesError } =
-        await supabase
-          .from("exhibitions")
-          .select("*")
-          .order("created_at", { ascending: false });
-
-      if (exposicionesError) throw exposicionesError;
+      const exposicionesData = await getCollection("exhibitions");
 
       if (exposicionesData && exposicionesData.length > 0) {
-        setExposiciones(exposicionesData);
-        setCurrentExposicion(exposicionesData[0].id);
+        // Ordenar por fecha de creación descendente
+        const sortedExposiciones = exposicionesData.sort((a, b) => {
+          const dateA = a.created_at?.toDate
+            ? a.created_at.toDate()
+            : new Date(a.created_at);
+          const dateB = b.created_at?.toDate
+            ? b.created_at.toDate()
+            : new Date(b.created_at);
+          return dateB.getTime() - dateA.getTime();
+        });
 
-        const { data: imagesData, error: imagesError } = await supabase
-          .from("images")
-          .select("*")
-          .eq("section", "exhibitions");
+        setExposiciones(sortedExposiciones);
+        setCurrentExposicion(sortedExposiciones[0].id);
 
-        if (imagesError) throw imagesError;
+        const imagesData = await getDocumentsWithFilter(
+          "images",
+          "section",
+          "exhibitions"
+        );
 
         if (imagesData) {
           const imagesByExposition = imagesData.reduce((acc, img) => {

@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { FaInstagram, FaGlobe } from "react-icons/fa";
 import Masonry from "react-masonry-css";
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { getCollection } from "@/lib/firestore-helpers";
 
 interface TeamMember {
   id: string;
@@ -26,35 +26,23 @@ export default function Team() {
         setError(null);
 
         // Obtener los miembros del equipo
-        const { data: teamData, error: teamError } = await supabase
-          .from("team_members")
-          .select("*")
-          .order("created_at", { ascending: true });
-
-        if (teamError) {
-          console.error("Error cargando equipo:", teamError);
-          setError("Error cargando el equipo");
-          return;
-        }
+        const teamData = await getCollection("team_members");
 
         if (teamData) {
           console.log("Datos del equipo recibidos:", teamData);
 
-          // Para cada miembro, asegurarnos que la URL de la imagen es pública
-          const membersWithPublicUrls = teamData.map((member) => {
-            if (member.image_url && member.image_url.startsWith("team/")) {
-              // Obtener la URL pública del bucket
-              const {
-                data: { publicUrl },
-              } = supabase.storage
-                .from("images")
-                .getPublicUrl(member.image_url);
-              return { ...member, image_url: publicUrl };
-            }
-            return member;
+          // Ordenar por fecha de creación
+          const sortedMembers = teamData.sort((a, b) => {
+            const dateA = a.created_at?.toDate
+              ? a.created_at.toDate()
+              : new Date(a.created_at);
+            const dateB = b.created_at?.toDate
+              ? b.created_at.toDate()
+              : new Date(b.created_at);
+            return dateA.getTime() - dateB.getTime();
           });
 
-          setTeamMembers(membersWithPublicUrls);
+          setTeamMembers(sortedMembers);
         }
       } catch (error) {
         console.error("Error:", error);

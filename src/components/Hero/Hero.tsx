@@ -2,7 +2,7 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { getDocumentsWithFilter } from "@/lib/firestore-helpers";
 
 interface SiteSettings {
   hero_type: "image" | "video";
@@ -24,19 +24,14 @@ export default function Hero() {
 
   const loadSettings = async () => {
     try {
-      const { data, error } = await supabase
-        .from("site_settings")
-        .select("*")
-        .eq("is_active", true)
-        .single();
+      const data = await getDocumentsWithFilter(
+        "site_settings",
+        "is_active",
+        true
+      );
 
-      if (error && error.code !== "PGRST116") {
-        console.error("Error cargando configuración:", error);
-        return;
-      }
-
-      if (data) {
-        setSettings(data);
+      if (data && data.length > 0) {
+        setSettings(data[0]);
       }
     } catch (error) {
       console.error("Error:", error);

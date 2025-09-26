@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { supabase } from "@/lib/supabase";
+import { getCollection } from "@/lib/firestore-helpers";
 import {
   HiUsers,
   HiClock,
@@ -44,12 +44,12 @@ export default function DashboardPage() {
     try {
       setIsLoading(true);
       // Cargar estadísticas de contenido
-      const [exhibitionsResult, editionsResult, teamResult, eventsResult] =
+      const [exhibitionsData, editionsData, teamData, eventsData] =
         await Promise.all([
-          supabase.from("exhibitions").select("*", { count: "exact" }),
-          supabase.from("editions").select("*", { count: "exact" }),
-          supabase.from("team_members").select("*", { count: "exact" }),
-          supabase.from("events").select("*", { count: "exact" }),
+          getCollection("exhibitions"),
+          getCollection("editions"),
+          getCollection("team_members"),
+          getCollection("events"),
         ]);
 
       // Aquí podrías cargar visitas reales de la tabla page_views
@@ -59,10 +59,10 @@ export default function DashboardPage() {
         weekly: 0,
         monthly: 0,
         yearly: 0,
-        totalExhibitions: exhibitionsResult.count || 0,
-        totalEditions: editionsResult.count || 0,
-        totalTeamMembers: teamResult.count || 0,
-        totalEvents: eventsResult.count || 0,
+        totalExhibitions: exhibitionsData?.length || 0,
+        totalEditions: editionsData?.length || 0,
+        totalTeamMembers: teamData?.length || 0,
+        totalEvents: eventsData?.length || 0,
       });
     } catch (error) {
       console.error("Error cargando estadísticas:", error);

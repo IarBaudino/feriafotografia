@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+// Autenticación simplificada - sin Supabase
 import { HiSave } from "react-icons/hi";
 import AuthCheck from "@/components/Auth/AuthCheck";
 

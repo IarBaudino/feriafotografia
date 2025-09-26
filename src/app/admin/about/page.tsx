@@ -1,6 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import {
+  getCollection,
+  getDocumentsWithFilter,
+  addDocument,
+  updateDocument,
+  deleteDocument,
+} from "@/lib/firestore-helpers";
 import dynamic from "next/dynamic";
 import { HiSave, HiTrash, HiUpload } from "react-icons/hi";
 import { motion } from "framer-motion";
@@ -29,39 +35,20 @@ export default function AboutPage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   useEffect(() => {
-    // Verificar autenticación al cargar
-    const checkAuth = async () => {
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
-      if (error || !session) {
-        console.error("Error de autenticación:", error);
-        setError("Debes iniciar sesión para acceder a esta página");
-        return;
-      }
-      loadAboutContent();
-    };
-
-    checkAuth();
+    loadAboutContent();
   }, []);
 
   const loadAboutContent = async () => {
     try {
-      const { data: aboutData, error: aboutError } = await supabase
-        .from("about")
-        .select("*")
-        .single();
+      const aboutDataArray = await getCollection("about");
+      const aboutData =
+        aboutDataArray && aboutDataArray.length > 0 ? aboutDataArray[0] : null;
 
-      if (aboutError) throw aboutError;
-
-      const { data: imagesData, error: imagesError } = await supabase
-        .from("images")
-        .select("*")
-        .eq("section", "about")
-        .order("created_at", { ascending: true });
-
-      if (imagesError) throw imagesError;
+      const imagesData = await getDocumentsWithFilter(
+        "images",
+        "section",
+        "about"
+      );
 
       if (aboutData) {
         setContent({
@@ -79,30 +66,10 @@ export default function AboutPage() {
   const handleImageUpload = async (files: FileList) => {
     setIsUploading(true);
     try {
-      const uploadPromises = Array.from(files).map(async (file) => {
-        const fileExt = file.name.split(".").pop();
-        const fileName = `about-${Date.now()}-${Math.random()}.${fileExt}`;
-        const filePath = `about/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("images")
-          .upload(filePath, file);
-
-        if (uploadError) throw uploadError;
-
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("images").getPublicUrl(filePath);
-
-        return publicUrl;
-      });
-
-      const newImageUrls = await Promise.all(uploadPromises);
-      setContent((prev) => ({
-        ...prev,
-        images: [...prev.images, ...newImageUrls],
-      }));
-      setHasUnsavedChanges(true);
+      // TODO: Implementar subida a Cloudinary
+      alert(
+        "Funcionalidad de subida de imágenes pendiente de implementar con Cloudinary"
+      );
     } catch (error) {
       console.error("Error subiendo imágenes:", error);
       alert("Error al subir las imágenes");
@@ -113,23 +80,13 @@ export default function AboutPage() {
 
   const handleImageDelete = async (imageUrl: string) => {
     try {
-      // Extraer el nombre del archivo de la URL
-      const fileName = imageUrl.split("/").pop();
-      if (fileName) {
-        const { error: storageError } = await supabase.storage
-          .from("images")
-          .remove([`about/${fileName}`]);
-
-        if (storageError) throw storageError;
-      }
+      // Buscar la imagen en Firebase
+      const images = await getDocumentsWithFilter("images", "url", imageUrl);
 
       // Eliminar de la base de datos
-      const { error: dbError } = await supabase
-        .from("images")
-        .delete()
-        .eq("url", imageUrl);
-
-      if (dbError) throw dbError;
+      for (const img of images) {
+        await deleteDocument("images", img.id);
+      }
 
       // Actualizar estado local
       setContent((prev) => ({
@@ -150,46 +107,37 @@ export default function AboutPage() {
       let aboutId = content.id;
       if (!aboutId) {
         // Si no existe, crear el registro
-        const { data: aboutData, error: aboutError } = await supabase
-          .from("about")
-          .insert({
-            title: content.title,
-            content: content.content,
-            updated_at: new Date().toISOString(),
-          })
-          .select()
-          .single();
-        if (aboutError) throw aboutError;
-        aboutId = aboutData.id;
-      } else {
-        const { error: aboutError } = await supabase.from("about").upsert({
-          id: aboutId,
+        aboutId = await addDocument("about", {
           title: content.title,
           content: content.content,
-          updated_at: new Date().toISOString(),
+          updated_at: new Date(),
         });
-        if (aboutError) throw aboutError;
+      } else {
+        await updateDocument("about", aboutId, {
+          title: content.title,
+          content: content.content,
+          updated_at: new Date(),
+        });
       }
 
       // Guardar imágenes en la base de datos
       if (aboutId) {
         for (const imageUrl of content.images) {
           // Verificar si la imagen ya existe en la base de datos
-          const { data: existingImage } = await supabase
-            .from("images")
-            .select("id")
-            .eq("url", imageUrl)
-            .single();
+          const existingImages = await getDocumentsWithFilter(
+            "images",
+            "url",
+            imageUrl
+          );
 
-          if (!existingImage) {
+          if (existingImages.length === 0) {
             // Si no existe, insertarla
-            const { error: imageError } = await supabase.from("images").insert({
+            await addDocument("images", {
               url: imageUrl,
               alt: `Imagen de ${content.title}`,
               section: "about",
               section_id: aboutId,
             });
-            if (imageError) throw imageError;
           }
         }
       }

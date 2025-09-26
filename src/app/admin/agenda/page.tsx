@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+// Autenticación simplificada - sin Supabase
 import { motion } from "framer-motion";
 import AuthCheck from "@/components/Auth/AuthCheck";
 import { HiPlus, HiPencil, HiTrash, HiCheck } from "react-icons/hi2";
@@ -123,7 +123,7 @@ export default function AdminAgendaPage() {
         if (error) throw error;
       } else {
         // Crear nuevo evento
-        const { error } = await supabase.from("events").insert([eventData]);
+        const { error } = await // Firebase: getCollection("events").insert([eventData]);
         if (error) throw error;
       }
 
@@ -143,7 +143,7 @@ export default function AdminAgendaPage() {
     if (!confirm("¿Estás seguro de que quieres eliminar este evento?")) return;
 
     try {
-      const { error } = await supabase.from("events").delete().eq("id", id);
+      const { error } = await // Firebase: getCollection("events").delete().eq("id", id);
 
       if (error) throw error;
       loadEvents();
@@ -184,7 +184,7 @@ export default function AdminAgendaPage() {
       const filePath = `events/${fileName}`;
 
       // Subir el archivo a Supabase Storage
-      const { error: uploadError, data } = await supabase.storage
+      const { error: uploadError, data } = await // Cloudinary: TODO implementar
         .from("images")
         .upload(filePath, file);
 
@@ -193,7 +193,7 @@ export default function AdminAgendaPage() {
       // Obtener la URL pública
       const {
         data: { publicUrl },
-      } = supabase.storage.from("images").getPublicUrl(filePath);
+      } = // Cloudinary: TODO implementar.from("images").getPublicUrl(filePath);
 
       // Actualizar el evento con la URL de la imagen
       setCurrentEvent({

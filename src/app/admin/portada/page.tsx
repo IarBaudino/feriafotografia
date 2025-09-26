@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+// Autenticación simplificada - sin Supabase
 import { motion } from "framer-motion";
 import AuthCheck from "@/components/Auth/AuthCheck";
 import { HiSave, HiUpload, HiTrash, HiEye } from "react-icons/hi";
@@ -87,7 +87,7 @@ export default function PortadaPage() {
       const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
       const filePath = `hero/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await // Cloudinary: TODO implementar
         .from("images")
         .upload(filePath, file);
 
@@ -95,7 +95,7 @@ export default function PortadaPage() {
 
       const {
         data: { publicUrl },
-      } = supabase.storage.from("images").getPublicUrl(filePath);
+      } = // Cloudinary: TODO implementar.from("images").getPublicUrl(filePath);
 
       setSettings({
         ...settings,
@@ -135,7 +135,7 @@ export default function PortadaPage() {
       const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
       const filePath = `hero/videos/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await // Cloudinary: TODO implementar
         .from("images")
         .upload(filePath, file);
 
@@ -143,7 +143,7 @@ export default function PortadaPage() {
 
       const {
         data: { publicUrl },
-      } = supabase.storage.from("images").getPublicUrl(filePath);
+      } = // Cloudinary: TODO implementar.from("images").getPublicUrl(filePath);
 
       setSettings({
         ...settings,
@@ -162,7 +162,7 @@ export default function PortadaPage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const { error } = await supabase.from("site_settings").upsert({
+      const { error } = await // Firebase: getCollection("site_settings").upsert({
         ...settings,
         updated_at: new Date().toISOString(),
       });

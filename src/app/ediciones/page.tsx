@@ -2,7 +2,11 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import PublicSidebar from "@/components/Sidebar/PublicSidebar";
-import { supabase } from "@/lib/supabase";
+import {
+  getCollection,
+  getDocumentsWithFilter,
+  removeDuplicateImages,
+} from "@/lib/firestore-helpers";
 import Image from "next/image";
 import Masonry from "react-masonry-css";
 
@@ -41,29 +45,41 @@ export default function EdicionesPage() {
   const loadEdiciones = async () => {
     try {
       console.log("Cargando ediciones...");
-      const { data: edicionesData, error: edicionesError } = await supabase
-        .from("editions")
-        .select("*")
-        .order("date", { ascending: false });
-
-      if (edicionesError) throw edicionesError;
+      const edicionesData = await getCollection("editions");
       console.log("Ediciones cargadas:", edicionesData);
 
       if (edicionesData && edicionesData.length > 0) {
-        setEdiciones(edicionesData);
-        setCurrentEdicion(edicionesData[0].id);
+        // Ordenar por fecha descendente
+        const sortedEdiciones = edicionesData.sort((a, b) => {
+          const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+          const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+          return dateB.getTime() - dateA.getTime();
+        });
+
+        // Convertir fechas para mostrar correctamente
+        const processedEdiciones = sortedEdiciones.map((edicion) => ({
+          ...edicion,
+          date: edicion.date?.toDate
+            ? edicion.date.toDate()
+            : new Date(edicion.date),
+        }));
+
+        setEdiciones(processedEdiciones);
+        setCurrentEdicion(processedEdiciones[0].id);
 
         console.log("Cargando imágenes...");
-        const { data: imagesData, error: imagesError } = await supabase
-          .from("images")
-          .select("*")
-          .eq("section", "editions");
-
-        if (imagesError) throw imagesError;
+        const imagesData = await getDocumentsWithFilter(
+          "images",
+          "section",
+          "editions"
+        );
         console.log("Imágenes cargadas:", imagesData);
 
         if (imagesData) {
-          const imagesByEdition = imagesData.reduce((acc, img) => {
+          // Filtrar duplicados por URL
+          const uniqueImages = removeDuplicateImages(imagesData);
+
+          const imagesByEdition = uniqueImages.reduce((acc, img) => {
             if (!acc[img.section_id]) {
               acc[img.section_id] = [];
             }
@@ -343,10 +359,8 @@ export default function EdicionesPage() {
                           layoutId={`image-${img.id}`}
                         >
                           <div className="relative w-full h-full rounded-lg overflow-hidden">
-
-
                             <motion.img
-                              src={img.url}
+                              src={`${img.url}?v=${Date.now()}`}
                               alt={
                                 img.alt ||
                                 `Imagen ${i + 1} de ${selectedEdicion.title}`
@@ -356,8 +370,6 @@ export default function EdicionesPage() {
                               animate={{ scale: 1 }}
                               transition={{ duration: 0.8 }}
                             />
-
-
                           </div>
                         </motion.div>
                       );

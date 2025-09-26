@@ -1,46 +1,31 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { onAuthChange } from "@/lib/firebase-auth";
 
 export default function AuthCheck({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        // Verificar si hay un usuario autenticado en localStorage
+        const isAuth = localStorage.getItem("admin_authenticated") === "true";
+        const user = localStorage.getItem("admin_user");
 
-        console.log("Estado de sesión:", session);
-
-        // Si estamos en la página de login y hay sesión, redirigir al dashboard
-        if (session && pathname === "/admin/login") {
-          router.push("/admin/dashboard");
-          return;
-        }
-
-        // Si no hay sesión y no estamos en login, redirigir a login
-        if (!session && pathname !== "/admin/login") {
+        if (isAuth && user) {
+          console.log("Usuario autenticado:", JSON.parse(user));
+          setIsAuthenticated(true);
+        } else {
+          console.log("Usuario no autenticado, redirigiendo a login");
           router.push("/admin/login");
-          return;
-        }
-
-        // Si hay sesión, verificar que siga siendo válida
-        if (session) {
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
-          console.log("Sesión válida, usuario:", user?.email);
         }
       } catch (error) {
         console.error("Error verificando autenticación:", error);
-        if (pathname !== "/admin/login") {
-          router.push("/admin/login");
-        }
+        router.push("/admin/login");
       } finally {
         setIsLoading(false);
       }
@@ -48,16 +33,26 @@ export default function AuthCheck({ children }: { children: React.ReactNode }) {
 
     checkAuth();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Cambio de estado de auth:", event, session?.user?.email);
-      checkAuth();
+    // Escuchar cambios de autenticación de Firebase
+    const unsubscribe = onAuthChange((user) => {
+      if (user) {
+        console.log("Usuario autenticado en Firebase:", user.email);
+        setIsAuthenticated(true);
+        localStorage.setItem("admin_authenticated", "true");
+        localStorage.setItem(
+          "admin_user",
+          JSON.stringify({ email: user.email })
+        );
+      } else {
+        console.log("Usuario no autenticado en Firebase");
+        setIsAuthenticated(false);
+        localStorage.removeItem("admin_authenticated");
+        localStorage.removeItem("admin_user");
+        router.push("/admin/login");
+      }
     });
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => unsubscribe();
   }, [router, pathname]);
 
   if (isLoading) {

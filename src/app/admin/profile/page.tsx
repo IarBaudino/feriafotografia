@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+// Autenticación simplificada - sin Supabase
 import { HiSave, HiEye, HiEyeOff } from "react-icons/hi";
 import AuthCheck from "@/components/Auth/AuthCheck";
 import { AUTH_CONFIG } from "@/lib/auth-config";
@@ -23,7 +23,7 @@ export default function ProfilePage() {
     const getUser = async () => {
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = // Obtener usuario simplificado();
       setUser(user);
     };
     getUser();
@@ -52,7 +52,7 @@ export default function ProfilePage() {
 
     try {
       // Cambiar contraseña
-      const { error } = await supabase.auth.updateUser({
+      const { error } = // Actualizar usuario simplificado({
         password: newPassword,
       });
 
@@ -83,7 +83,7 @@ export default function ProfilePage() {
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      // Cerrar sesión simplificado();
       // Forzar recarga para limpiar completamente la sesión
       window.location.href = "/admin/login";
     } catch (error) {

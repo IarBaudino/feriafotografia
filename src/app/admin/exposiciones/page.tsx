@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { supabase } from "@/lib/supabase";
+// Autenticación simplificada - sin Supabase
 import { HiPlus, HiPencil, HiTrash, HiSave, HiUpload } from "react-icons/hi";
 import CustomQuillEditor from "@/components/Editor/CustomQuillEditor";
 import AuthCheck from "@/components/Auth/AuthCheck";
@@ -96,7 +96,7 @@ export default function ExposicionesAdminPage() {
         const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
         const filePath = `exhibitions/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
+        const { error: uploadError } = await // Cloudinary: TODO implementar
           .from("images")
           .upload(filePath, file);
 
@@ -104,7 +104,7 @@ export default function ExposicionesAdminPage() {
 
         const {
           data: { publicUrl },
-        } = supabase.storage.from("images").getPublicUrl(filePath);
+        } = // Cloudinary: TODO implementar.from("images").getPublicUrl(filePath);
 
         return publicUrl;
       });
@@ -133,7 +133,7 @@ export default function ExposicionesAdminPage() {
       // Extraer el nombre del archivo de la URL
       const fileName = imageUrl.split("/").pop();
       if (fileName) {
-        const { error: storageError } = await supabase.storage
+        const { error: storageError } = await // Cloudinary: TODO implementar
           .from("images")
           .remove([`exhibitions/${fileName}`]);
 
@@ -204,7 +204,7 @@ export default function ExposicionesAdminPage() {
 
           if (!existingImage) {
             // Si no existe, insertarla
-            const { error: imageError } = await supabase.from("images").insert({
+            const { error: imageError } = await // Firebase: getCollection("images").insert({
               url: imageUrl,
               alt: `Imagen de ${currentExposicion.title}`,
               section: "exhibitions",
@@ -245,7 +245,7 @@ export default function ExposicionesAdminPage() {
         for (const img of imagesData) {
           const fileName = img.url.split("/").pop();
           if (fileName) {
-            await supabase.storage
+            await // Cloudinary: TODO implementar
               .from("images")
               .remove([`exhibitions/${fileName}`]);
           }

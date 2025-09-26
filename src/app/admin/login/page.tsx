@@ -1,8 +1,8 @@
 "use client";
 import React from "react";
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { signIn } from "@/lib/firebase-auth";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -18,19 +18,22 @@ export default function LoginPage() {
 
     try {
       console.log("Intentando iniciar sesión con:", email);
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
 
-      console.log("Respuesta de auth:", { data, error });
+      const result = await signIn(email, password);
 
-      if (error) throw error;
+      if (result.success) {
+        // Guardar en localStorage para persistencia
+        localStorage.setItem("admin_authenticated", "true");
+        localStorage.setItem(
+          "admin_user",
+          JSON.stringify({ email: result.user?.email })
+        );
 
-      if (data.session) {
         console.log("Sesión iniciada correctamente");
         router.replace("/admin/dashboard");
         router.refresh();
+      } else {
+        setError(result.error || "Error al iniciar sesión");
       }
     } catch (error) {
       console.error("Error de inicio de sesión:", error);

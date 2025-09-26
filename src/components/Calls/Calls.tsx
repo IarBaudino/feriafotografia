@@ -1,7 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { getCollection } from "@/lib/firestore-helpers";
 
 interface CallsContent {
   id?: string;
@@ -22,59 +22,35 @@ export default function Calls() {
 
   useEffect(() => {
     loadCallData();
-
-    // Suscribirse a cambios en la tabla calls
-    const channel = supabase
-      .channel("calls_changes")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "calls",
-        },
-        (payload) => {
-          console.log("Cambios detectados:", payload);
-          loadCallData(); // Recargar datos cuando hay cambios
-        }
-      )
-      .subscribe();
-
-    // Limpiar suscripción
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
 
   const loadCallData = async () => {
     try {
       console.log("Cargando datos de convocatoria...");
-      const { data, error } = await supabase
-        .from("calls")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
+      const data = await getCollection("calls");
 
       console.log("Datos recibidos:", data);
-      console.log("Error:", error);
 
-      if (error) {
-        if (error.code === "PGRST116") {
-          // No hay datos, establecer estado inicial
-          setCallData(null);
-        } else {
-          throw error;
-        }
-      }
+      if (data && data.length > 0) {
+        // Obtener el más reciente (Firebase no tiene orderBy por defecto)
+        const latestCall = data.sort((a, b) => {
+          const dateA = a.created_at?.toDate
+            ? a.created_at.toDate()
+            : new Date(a.created_at);
+          const dateB = b.created_at?.toDate
+            ? b.created_at.toDate()
+            : new Date(b.created_at);
+          return dateB.getTime() - dateA.getTime();
+        })[0];
 
-      if (data) {
         const processedData = {
-          ...data,
-          is_active: Boolean(data.is_active),
+          ...latestCall,
+          is_active: Boolean(latestCall.is_active),
         };
         console.log("Datos procesados:", processedData);
         setCallData(processedData);
+      } else {
+        setCallData(null);
       }
     } catch (error) {
       console.error("Error cargando convocatoria:", error);

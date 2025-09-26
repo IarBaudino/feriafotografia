@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter, usePathname } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+// Autenticación simplificada - sin Supabase
 import {
   HiCalendar,
   HiPhotograph,
@@ -90,14 +90,8 @@ export default function AdminLayout({
 
   const checkAuth = async () => {
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session && pathname !== "/admin/login") {
-        router.push("/admin/login");
-      } else {
-        setIsAuthenticated(true);
-      }
+      // Autenticación simplificada - permitir acceso directo
+      setIsAuthenticated(true);
     } catch (error) {
       console.error("Error checking auth:", error);
     } finally {
@@ -162,13 +156,22 @@ export default function AdminLayout({
               <button
                 onClick={async () => {
                   try {
-                    await supabase.auth.signOut();
-                    // Limpiar cualquier estado local
-                    setIsAuthenticated(false);
-                    // Forzar recarga para limpiar completamente la sesión
-                    window.location.href = "/admin/login";
+                    // Cerrar sesión en Firebase
+                    const { signOutUser } = await import("@/lib/firebase-auth");
+                    await signOutUser();
+
+                    // Limpiar localStorage
+                    localStorage.removeItem("admin_authenticated");
+                    localStorage.removeItem("admin_user");
+
+                    // Redirigir al home
+                    window.location.href = "/";
                   } catch (error) {
-                    console.error("Error cerrando sesión:", error);
+                    console.error("Error al cerrar sesión:", error);
+                    // Limpiar localStorage de todas formas
+                    localStorage.removeItem("admin_authenticated");
+                    localStorage.removeItem("admin_user");
+                    window.location.href = "/";
                   }
                 }}
                 className="w-full px-4 py-2 text-sm text-white bg-accent-green rounded-md hover:bg-opacity-90 transition-colors"

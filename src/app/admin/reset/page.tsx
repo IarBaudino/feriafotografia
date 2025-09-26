@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
+// Autenticación simplificada - sin Supabase
 import { useRouter } from "next/navigation";
 import { HiMail, HiArrowLeft } from "react-icons/hi";
 
@@ -21,7 +21,7 @@ export default function ResetPasswordPage() {
     try {
       console.log("Intentando enviar email de recuperación a:", email);
 
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = // Reset simplificado(email, {
         redirectTo: `${window.location.origin}/admin/login`,
       });
 

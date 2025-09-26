@@ -3,7 +3,11 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import Masonry from "react-masonry-css";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import {
+  getCollection,
+  getDocumentsWithFilter,
+  removeDuplicateImages,
+} from "@/lib/firestore-helpers";
 
 interface CollageImage {
   src: string;
@@ -36,47 +40,75 @@ export default function About() {
     async function fetchData() {
       try {
         // Obtener datos del about
-        const { data: aboutData, error: aboutError } = await supabase
-          .from("about")
-          .select("*")
-          .single();
-
-        if (aboutError) {
-          console.error("Error fetching about data:", aboutError);
-          return;
+        const aboutDataArray = await getCollection("about");
+        if (aboutDataArray && aboutDataArray.length > 0) {
+          const processedAbout = {
+            ...aboutDataArray[0],
+            updated_at: aboutDataArray[0].updated_at?.toDate
+              ? aboutDataArray[0].updated_at.toDate()
+              : new Date(aboutDataArray[0].updated_at),
+          };
+          setAboutData(processedAbout);
         }
 
         // Obtener imágenes
-        const { data: imagesData, error: imagesError } = await supabase
-          .from("images")
-          .select("*")
-          .eq("section", "about");
+        const imagesData = await getDocumentsWithFilter(
+          "images",
+          "section",
+          "about"
+        );
 
-        if (imagesError) {
-          console.error("Error fetching images:", imagesError);
-          return;
-        }
-
-        // Solo usar imágenes de la base de datos, no fallback
         if (imagesData && imagesData.length > 0) {
-          const formattedImages = imagesData.map((img) => ({
-            src: img.url,
+          console.log("🔍 IMÁGENES ORIGINALES DEL ABOUT:");
+          console.log(`📊 Total imágenes encontradas: ${imagesData.length}`);
+          imagesData.forEach((img, index) => {
+            console.log(`  ${index + 1}. ID: ${img.id}`);
+            console.log(`      URL COMPLETA: ${img.url}`);
+          });
+
+          // Filtrar duplicados por URL
+          const uniqueImages = removeDuplicateImages(imagesData);
+
+          console.log("\n🧹 DESPUÉS DEL FILTRO DE DUPLICADOS:");
+          console.log(`📊 Imágenes únicas: ${uniqueImages.length}`);
+          console.log(
+            `📊 Duplicados eliminados: ${
+              imagesData.length - uniqueImages.length
+            }`
+          );
+          uniqueImages.forEach((img, index) => {
+            console.log(
+              `  ${index + 1}. ID: ${img.id} | URL: ${img.url?.substring(
+                0,
+                80
+              )}...`
+            );
+          });
+
+          const formattedImages = uniqueImages.map((img) => ({
+            src: `${img.url}?v=${Date.now()}`,
             alt: img.alt || "Feria Fotografía",
             className:
               "mb-4 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300",
           }));
+
+          console.log("\n🎨 IMÁGENES FINALES QUE SE MUESTRAN:");
+          console.log(`📊 Total imágenes a mostrar: ${formattedImages.length}`);
+          formattedImages.forEach((img, index) => {
+            console.log(
+              `  ${index + 1}. SRC: ${img.src?.substring(0, 80)}... | ALT: ${
+                img.alt
+              }`
+            );
+          });
+
           setCollageImages(formattedImages);
         } else {
-          // Si no hay imágenes, mostrar array vacío
+          console.log("❌ No se encontraron imágenes en el About");
           setCollageImages([]);
-        }
-
-        if (aboutData) {
-          setAboutData(aboutData);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
-        // En caso de error, mostrar array vacío
         setCollageImages([]);
       }
     }

@@ -1,7 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { supabase } from "@/lib/supabase";
+import {
+  getCollection,
+  getDocumentsWithFilter,
+  addDocument,
+  updateDocument,
+  deleteDocument,
+} from "@/lib/firestore-helpers";
 import {
   HiPlus,
   HiPencil,
@@ -193,23 +199,24 @@ export default function EdicionesAdminPage() {
 
   const loadEdiciones = async () => {
     try {
-      const { data, error } = await supabase
-        .from("editions")
-        .select("*")
-        .order("date", { ascending: false });
-
-      if (error) throw error;
+      const data = await getCollection("editions");
 
       if (data) {
-        setEdiciones(data);
+        // Ordenar por fecha
+        const sortedEdiciones = data.sort((a, b) => {
+          const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+          const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+          return dateB.getTime() - dateA.getTime();
+        });
+
+        setEdiciones(sortedEdiciones);
 
         // Cargar imágenes
-        const { data: imagesData, error: imagesError } = await supabase
-          .from("images")
-          .select("*")
-          .eq("section", "editions");
-
-        if (imagesError) throw imagesError;
+        const imagesData = await getDocumentsWithFilter(
+          "images",
+          "section",
+          "editions"
+        );
 
         if (imagesData) {
           const imagesByEdition = imagesData.reduce((acc, img) => {
@@ -236,34 +243,10 @@ export default function EdicionesAdminPage() {
 
     setIsUploadingImages(true);
     try {
-      const uploadPromises = Array.from(files).map(async (file) => {
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
-        const filePath = `editions/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("images")
-          .upload(filePath, file);
-
-        if (uploadError) throw uploadError;
-
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("images").getPublicUrl(filePath);
-
-        return publicUrl;
-      });
-
-      const newImageUrls = await Promise.all(uploadPromises);
-      setEdicionImages((prev) => ({
-        ...prev,
-        [currentEdicion.id]: [
-          ...(prev[currentEdicion.id] || []),
-          ...newImageUrls,
-        ],
-      }));
-
-      setHasUnsavedChanges(true);
+      // TODO: Implementar subida a Cloudinary
+      alert(
+        "Funcionalidad de subida de imágenes pendiente de implementar con Cloudinary"
+      );
     } catch (error) {
       console.error("Error subiendo imágenes:", error);
       alert("Error al subir las imágenes");
@@ -276,23 +259,13 @@ export default function EdicionesAdminPage() {
     if (!currentEdicion) return;
 
     try {
-      // Extraer el nombre del archivo de la URL
-      const fileName = imageUrl.split("/").pop();
-      if (fileName) {
-        const { error: storageError } = await supabase.storage
-          .from("images")
-          .remove([`editions/${fileName}`]);
-
-        if (storageError) throw storageError;
-      }
+      // Buscar la imagen en Firebase
+      const images = await getDocumentsWithFilter("images", "url", imageUrl);
 
       // Eliminar de la base de datos
-      const { error: dbError } = await supabase
-        .from("images")
-        .delete()
-        .eq("url", imageUrl);
-
-      if (dbError) throw dbError;
+      for (const img of images) {
+        await deleteDocument("images", img.id);
+      }
 
       // Actualizar estado local
       setEdicionImages((prev) => ({
@@ -343,52 +316,10 @@ export default function EdicionesAdminPage() {
       return;
     }
 
-    // Validar tipo de archivo
-    const validTypes = [
-      "video/mp4",
-      "video/webm",
-      "video/ogg",
-      "video/quicktime",
-    ];
-    if (!validTypes.includes(file.type)) {
-      alert("Por favor, sube un archivo de video válido (MP4, WebM, OGG, MOV)");
-      return;
-    }
-
-    // Validar tamaño (máximo 100MB)
-    if (file.size > 100 * 1024 * 1024) {
-      alert("El video no puede ser mayor a 100MB");
-      return;
-    }
-
-    setIsUploadingVideo(true);
-    try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
-      const filePath = `editions/videos/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("images") // Usamos el mismo bucket que las imágenes
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("images").getPublicUrl(filePath);
-
-      setCurrentEdicion({
-        ...currentEdicion,
-        video_url: publicUrl,
-        video_type: "upload",
-      });
-      setHasUnsavedChanges(true);
-    } catch (error) {
-      console.error("Error subiendo video:", error);
-      alert("Error al subir el video");
-    } finally {
-      setIsUploadingVideo(false);
-    }
+    // TODO: Implementar subida de video a Cloudinary
+    alert(
+      "Funcionalidad de subida de video pendiente de implementar con Cloudinary"
+    );
   };
 
   // Función para eliminar video
@@ -396,18 +327,6 @@ export default function EdicionesAdminPage() {
     if (!currentEdicion || !currentEdicion.video_url) return;
 
     try {
-      if (currentEdicion.video_type === "upload") {
-        // Extraer el nombre del archivo de la URL
-        const fileName = currentEdicion.video_url.split("/").pop();
-        if (fileName) {
-          const { error: storageError } = await supabase.storage
-            .from("images")
-            .remove([`editions/videos/${fileName}`]);
-
-          if (storageError) throw storageError;
-        }
-      }
-
       setCurrentEdicion({
         ...currentEdicion,
         video_url: "",
@@ -429,44 +348,28 @@ export default function EdicionesAdminPage() {
 
       if (!edicionId) {
         // Crear nueva edición
-        const { data: newEdicion, error: createError } = await supabase
-          .from("editions")
-          .insert({
-            title: currentEdicion.title,
-            date: currentEdicion.date
-              ? new Date(currentEdicion.date).toISOString()
-              : null,
-            description: currentEdicion.description,
-            location: currentEdicion.location,
-            participants: currentEdicion.participants,
-            visitors: currentEdicion.visitors,
-            video_url: currentEdicion.video_url || null,
-            video_type: currentEdicion.video_type || null,
-          })
-          .select()
-          .single();
-
-        if (createError) throw createError;
-        edicionId = newEdicion.id;
+        edicionId = await addDocument("editions", {
+          title: currentEdicion.title,
+          date: currentEdicion.date ? new Date(currentEdicion.date) : null,
+          description: currentEdicion.description,
+          location: currentEdicion.location,
+          participants: currentEdicion.participants,
+          visitors: currentEdicion.visitors,
+          video_url: currentEdicion.video_url || null,
+          video_type: currentEdicion.video_type || null,
+        });
       } else {
         // Actualizar edición existente
-        const { error: updateError } = await supabase
-          .from("editions")
-          .update({
-            title: currentEdicion.title,
-            date: currentEdicion.date
-              ? new Date(currentEdicion.date).toISOString()
-              : null,
-            description: currentEdicion.description,
-            location: currentEdicion.location,
-            participants: currentEdicion.participants,
-            visitors: currentEdicion.visitors,
-            video_url: currentEdicion.video_url || null,
-            video_type: currentEdicion.video_type || null,
-          })
-          .eq("id", edicionId);
-
-        if (updateError) throw updateError;
+        await updateDocument("editions", edicionId, {
+          title: currentEdicion.title,
+          date: currentEdicion.date ? new Date(currentEdicion.date) : null,
+          description: currentEdicion.description,
+          location: currentEdicion.location,
+          participants: currentEdicion.participants,
+          visitors: currentEdicion.visitors,
+          video_url: currentEdicion.video_url || null,
+          video_type: currentEdicion.video_type || null,
+        });
       }
 
       // Guardar imágenes en la base de datos
@@ -474,21 +377,20 @@ export default function EdicionesAdminPage() {
         const currentImages = edicionImages[currentEdicion.id] || [];
         for (const imageUrl of currentImages) {
           // Verificar si la imagen ya existe en la base de datos
-          const { data: existingImage } = await supabase
-            .from("images")
-            .select("id")
-            .eq("url", imageUrl)
-            .single();
+          const existingImages = await getDocumentsWithFilter(
+            "images",
+            "url",
+            imageUrl
+          );
 
-          if (!existingImage) {
+          if (existingImages.length === 0) {
             // Si no existe, insertarla
-            const { error: imageError } = await supabase.from("images").insert({
+            await addDocument("images", {
               url: imageUrl,
               alt: `Imagen de ${currentEdicion.title}`,
               section: "editions",
               section_id: edicionId,
             });
-            if (imageError) throw imageError;
           }
         }
       }
@@ -511,40 +413,19 @@ export default function EdicionesAdminPage() {
 
     try {
       // Eliminar imágenes asociadas
-      const { data: imagesData, error: imagesError } = await supabase
-        .from("images")
-        .select("*")
-        .eq("section_id", edicionId);
-
-      if (imagesError) throw imagesError;
-
-      // Eliminar archivos del storage
-      if (imagesData) {
-        for (const img of imagesData) {
-          const fileName = img.url.split("/").pop();
-          if (fileName) {
-            await supabase.storage
-              .from("images")
-              .remove([`editions/${fileName}`]);
-          }
-        }
-      }
+      const imagesData = await getDocumentsWithFilter(
+        "images",
+        "section_id",
+        edicionId
+      );
 
       // Eliminar registros de imágenes de la base de datos
-      const { error: deleteImagesError } = await supabase
-        .from("images")
-        .delete()
-        .eq("section_id", edicionId);
-
-      if (deleteImagesError) throw deleteImagesError;
+      for (const img of imagesData) {
+        await deleteDocument("images", img.id);
+      }
 
       // Eliminar la edición
-      const { error: deleteError } = await supabase
-        .from("editions")
-        .delete()
-        .eq("id", edicionId);
-
-      if (deleteError) throw deleteError;
+      await deleteDocument("editions", edicionId);
 
       alert("Edición eliminada correctamente");
       loadEdiciones();

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+// Autenticación simplificada - sin Supabase
 import { motion } from "framer-motion";
 import AuthCheck from "@/components/Auth/AuthCheck";
 import { HiPlus } from "react-icons/hi2";
@@ -31,7 +31,7 @@ export default function TeamPage() {
     try {
       setIsLoading(true);
       console.log("Cargando miembros del equipo...");
-      const { data, error } = await supabase.from("team_members").select("*");
+      const { data, error } = await // Firebase: getCollection("team_members").select("*");
 
       console.log("Datos recibidos:", data);
       console.log("Error:", error);
@@ -54,14 +54,14 @@ export default function TeamPage() {
     const fileName = `${Math.random()}.${fileExt}`;
     const filePath = `team/${fileName}`;
 
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await // Cloudinary: TODO implementar
       .from("images")
       .upload(filePath, file);
 
     if (!uploadError) {
       const {
         data: { publicUrl },
-      } = supabase.storage.from("images").getPublicUrl(filePath);
+      } = // Cloudinary: TODO implementar.from("images").getPublicUrl(filePath);
 
       setCurrentMember({ ...currentMember, image_url: publicUrl });
     }

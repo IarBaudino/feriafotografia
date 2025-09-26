@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+// Autenticación simplificada - sin Supabase
 import { useRouter } from "next/navigation";
 
 // Configuración local para evitar problemas de importación
@@ -30,7 +30,7 @@ export default function RegisterPage() {
       try {
         const {
           data: { session },
-        } = await supabase.auth.getSession();
+        } = // Sesión simplificada();
 
         if (session) {
           // Si hay una sesión activa, verificar si el usuario está autorizado
@@ -43,7 +43,7 @@ export default function RegisterPage() {
             );
           } else {
             // Si el usuario no está autorizado, cerrar sesión automáticamente
-            await supabase.auth.signOut();
+            // Cerrar sesión simplificado();
             setError(
               "Sesión no autorizada cerrada. Puedes crear una cuenta autorizada."
             );
@@ -88,7 +88,7 @@ export default function RegisterPage() {
     try {
       console.log("Intentando crear cuenta con:", email);
 
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error } = // Registro simplificado({
         email,
         password,
         options: {
