@@ -136,36 +136,8 @@ export default function PortadaPage() {
       return;
     }
 
-    setIsUploading(true);
-    try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
-      const filePath = `hero/videos/${fileName}`;
-
-      // TODO: Implementar subida a Cloudinary
-      console.log("Subida de archivo:", filePath);
-
-      // Por ahora, simular éxito
-      const uploadError = null;
-
-      const {
-        data: { publicUrl },
-      } = {
-        publicUrl: `https://res.cloudinary.com/tu-cloud/image/upload/${filePath}`,
-      };
-
-      setSettings({
-        ...settings,
-        hero_video_url: publicUrl,
-        hero_video_type: "upload",
-      });
-      setHasUnsavedChanges(true);
-    } catch (error) {
-      console.error("Error subiendo video:", error);
-      alert("Error al subir el video");
-    } finally {
-      setIsUploading(false);
-    }
+    // TODO: Implementar subida de video a Cloudinary
+    alert("La subida de videos está pendiente de implementar. Por ahora, usa un link de YouTube o Vimeo.");
   };
 
   const handleSave = async () => {
