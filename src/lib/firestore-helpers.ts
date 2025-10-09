@@ -18,10 +18,16 @@ import { db } from "./firebase";
 export async function getCollection(collectionName: string) {
   try {
     const querySnapshot = await getDocs(collection(db, collectionName));
-    return querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    const result = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      // Eliminar el campo 'id' interno si existe (de migraciones de Supabase)
+      const { id: _, ...cleanData } = data as any;
+      return {
+        id: doc.id, // Usar siempre el ID real del documento de Firestore
+        ...cleanData,
+      };
+    });
+    return result;
   } catch (error) {
     console.error(`Error getting collection ${collectionName}:`, error);
     throw error;
@@ -35,7 +41,13 @@ export async function getDocument(collectionName: string, docId: string) {
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() };
+      const data = docSnap.data();
+      // Eliminar el campo 'id' interno si existe (de migraciones de Supabase)
+      const { id: _, ...cleanData } = data as any;
+      return {
+        id: docSnap.id, // Usar siempre el ID real del documento de Firestore
+        ...cleanData,
+      };
     } else {
       return null;
     }
@@ -57,10 +69,15 @@ export async function getDocumentsWithFilter(
   try {
     const q = query(collection(db, collectionName), where(field, "==", value));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    return querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      // Eliminar el campo 'id' interno si existe (de migraciones de Supabase)
+      const { id: _, ...cleanData } = data as any;
+      return {
+        id: doc.id, // Usar siempre el ID real del documento de Firestore
+        ...cleanData,
+      };
+    });
   } catch (error) {
     console.error(
       `Error getting filtered documents from ${collectionName}:`,
@@ -137,9 +154,6 @@ export function convertFirestoreDates(data: any) {
 export function removeDuplicateImages(images: any[]) {
   if (!images || images.length === 0) return images;
 
-  console.log("🔍 DEBUGGING removeDuplicateImages:");
-  console.log(`📊 Imágenes recibidas: ${images.length}`);
-
   // Función para extraer la URL base sin parámetros de versión
   const getBaseUrl = (url: string) => {
     if (!url) return url;
@@ -150,19 +164,8 @@ export function removeDuplicateImages(images: any[]) {
   const uniqueImages = images.filter((img, index, self) => {
     const baseUrl = getBaseUrl(img.url);
     const firstIndex = self.findIndex((t) => getBaseUrl(t.url) === baseUrl);
-
-    console.log(`  Imagen ${index + 1}: ${img.url?.substring(0, 60)}...`);
-    console.log(`    URL base: ${baseUrl?.substring(0, 60)}...`);
-    console.log(`    Primer índice encontrado: ${firstIndex}`);
-    console.log(`    Es única: ${firstIndex === index}`);
-
     return firstIndex === index;
   });
-
-  console.log(`📊 Imágenes únicas después del filtro: ${uniqueImages.length}`);
-  console.log(
-    `📊 Duplicados eliminados: ${images.length - uniqueImages.length}`
-  );
 
   return uniqueImages;
 }

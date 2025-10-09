@@ -1,12 +1,14 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   getCollection,
+  getDocument,
   getDocumentsWithFilter,
   addDocument,
   updateDocument,
   deleteDocument,
+  removeDuplicateImages,
 } from "@/lib/firestore-helpers";
 import {
   HiPlus,
@@ -24,7 +26,7 @@ interface Edicion {
   id: string;
   created_at?: string;
   title: string;
-  date: string;
+  date: string; // Formato ISO: YYYY-MM-DD
   description: string;
   location: string;
   participants: number;
@@ -165,6 +167,11 @@ function PreviewModal({ edicion, isOpen, onClose }: PreviewModalProps) {
   );
 }
 
+// Función para generar un ID temporal para nuevas ediciones
+const generateTempId = () => {
+  return `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+};
+
 const EMPTY_EDICION: Edicion = {
   id: "",
   title: "",
@@ -202,14 +209,44 @@ export default function EdicionesAdminPage() {
       const data = await getCollection("editions");
 
       if (data) {
-        // Ordenar por fecha
-        const sortedEdiciones = data.sort((a, b) => {
-          const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
-          const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+        console.log(
+          "📋 CARGA - Datos crudos de Firebase:",
+          data.map((e: any) => ({
+            idDocumento: e.id,
+            title: e.title,
+          }))
+        );
+
+        // Procesar fechas de Firebase y ordenar
+        const processedEdiciones = data.map((edicion: any) => ({
+          id: edicion.id, // Este es el ID real del documento de Firestore
+          title: edicion.title || "",
+          description: edicion.description || "",
+          location: edicion.location || "",
+          participants: edicion.participants || 0,
+          visitors: edicion.visitors || 0,
+          video_url: edicion.video_url || "",
+          video_type: edicion.video_type,
+          date: edicion.date?.toDate
+            ? edicion.date.toDate().toISOString().split("T")[0]
+            : edicion.date,
+        }));
+
+        const sortedEdiciones = processedEdiciones.sort((a, b) => {
+          const dateA = new Date(a.date);
+          const dateB = new Date(b.date);
           return dateB.getTime() - dateA.getTime();
         });
 
-        setEdiciones(sortedEdiciones);
+        console.log(
+          "✅ CARGA - Ediciones procesadas:",
+          sortedEdiciones.map((e) => ({
+            id: e.id,
+            title: e.title,
+          }))
+        );
+
+        setEdiciones(sortedEdiciones as Edicion[]);
 
         // Cargar imágenes
         const imagesData = await getDocumentsWithFilter(
@@ -219,13 +256,34 @@ export default function EdicionesAdminPage() {
         );
 
         if (imagesData) {
-          const imagesByEdition = imagesData.reduce((acc, img) => {
+          console.log(
+            "🖼️ IMÁGENES - Datos crudos:",
+            imagesData.map((img: any) => ({
+              section_id: img.section_id,
+              url: img.url?.substring(0, 50) + "...",
+            }))
+          );
+
+          // Aplicar filtro de duplicados global
+          const uniqueImages = removeDuplicateImages(imagesData);
+
+          // Agrupar por edición
+          const imagesByEdition = uniqueImages.reduce((acc, img) => {
             if (!acc[img.section_id]) {
               acc[img.section_id] = [];
             }
             acc[img.section_id].push(img.url);
             return acc;
           }, {} as Record<string, string[]>);
+
+          console.log(
+            "🖼️ IMÁGENES - Agrupadas por edición:",
+            Object.keys(imagesByEdition)
+          );
+          console.log(
+            "📊 COMPARACIÓN - IDs de ediciones:",
+            sortedEdiciones.map((e) => e.id)
+          );
 
           setEdicionImages(imagesByEdition);
         }
@@ -235,21 +293,69 @@ export default function EdicionesAdminPage() {
     }
   };
 
+  // Memoizar las imágenes procesadas para evitar re-renders innecesarios
+  const processedImages = useMemo(() => {
+    return edicionImages;
+  }, [edicionImages]);
+
   const handleImageUpload = async (files: FileList) => {
     if (!currentEdicion) {
       alert("Por favor, selecciona una edición para subir imágenes");
       return;
     }
 
+    console.log("📤 INICIO SUBIR IMÁGENES - currentEdicion:", {
+      id: currentEdicion.id,
+      title: currentEdicion.title,
+      tipoId: typeof currentEdicion.id,
+    });
+
+    // Si es una edición nueva sin ID, generar un ID temporal
+    let edicionId = currentEdicion.id;
+    if (!edicionId || edicionId === "") {
+      edicionId = generateTempId();
+      console.log("🆔 GENERANDO ID TEMPORAL:", edicionId);
+      setCurrentEdicion({ ...currentEdicion, id: edicionId });
+    } else {
+      console.log("✅ USANDO ID EXISTENTE:", edicionId);
+    }
+
     setIsUploadingImages(true);
     try {
-      // TODO: Implementar subida a Cloudinary
-      alert(
-        "Funcionalidad de subida de imágenes pendiente de implementar con Cloudinary"
-      );
+      const formData = new FormData();
+      Array.from(files).forEach((file) => {
+        formData.append("files", file);
+      });
+      formData.append("folder", "feriafotografia/editions");
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.urls) {
+        console.log(
+          `✅ ${data.urls.length} imagen(es) subidas - Usando ID: ${edicionId}`
+        );
+
+        // Agregar las nuevas URLs al estado local usando el ID (temporal o real)
+        const newImages = [...(edicionImages[edicionId] || []), ...data.urls];
+        setEdicionImages({
+          ...edicionImages,
+          [edicionId]: newImages,
+        });
+        setHasUnsavedChanges(true);
+        alert(
+          `${data.urls.length} imagen(es) subida(s) correctamente. Recuerda guardar los cambios.`
+        );
+      } else {
+        throw new Error(data.error || "Error desconocido");
+      }
     } catch (error) {
-      console.error("Error subiendo imágenes:", error);
-      alert("Error al subir las imágenes");
+      console.error("❌ Error subiendo imágenes:", error);
+      alert(`Error al subir las imágenes: ${error}`);
     } finally {
       setIsUploadingImages(false);
     }
@@ -342,67 +448,142 @@ export default function EdicionesAdminPage() {
   const handleSave = async () => {
     if (!currentEdicion) return;
 
+    console.log("🔍 INICIO GUARDAR - currentEdicion:", {
+      id: currentEdicion.id,
+      title: currentEdicion.title,
+      tipoId: typeof currentEdicion.id,
+      esTemporal: currentEdicion.id?.startsWith("temp-"),
+    });
+
     setIsSaving(true);
     try {
       let edicionId = currentEdicion.id;
+      const edicionData = {
+        title: currentEdicion.title,
+        date: currentEdicion.date ? new Date(currentEdicion.date) : null,
+        description: currentEdicion.description,
+        location: currentEdicion.location,
+        participants: currentEdicion.participants,
+        visitors: currentEdicion.visitors,
+        video_url: currentEdicion.video_url || null,
+        video_type: currentEdicion.video_type || null,
+      };
 
-      if (!edicionId) {
-        // Crear nueva edición
+      // Determinar si es una edición nueva o existente
+      const isNewEdicion =
+        !edicionId || edicionId === "" || edicionId.startsWith("temp-");
+
+      if (isNewEdicion) {
+        // CREAR NUEVA EDICIÓN
+        console.log("➕ CREAR NUEVA - Razón:", {
+          noTieneId: !edicionId,
+          idVacio: edicionId === "",
+          esTemporal: edicionId?.startsWith("temp-"),
+        });
+
         edicionId = await addDocument("editions", {
-          title: currentEdicion.title,
-          date: currentEdicion.date ? new Date(currentEdicion.date) : null,
-          description: currentEdicion.description,
-          location: currentEdicion.location,
-          participants: currentEdicion.participants,
-          visitors: currentEdicion.visitors,
-          video_url: currentEdicion.video_url || null,
-          video_type: currentEdicion.video_type || null,
+          ...edicionData,
+          created_at: new Date(),
         });
+
+        console.log("✅ CREADA con ID real:", edicionId);
+        setCurrentEdicion({ ...currentEdicion, id: edicionId });
       } else {
-        // Actualizar edición existente
-        await updateDocument("editions", edicionId, {
-          title: currentEdicion.title,
-          date: currentEdicion.date ? new Date(currentEdicion.date) : null,
-          description: currentEdicion.description,
-          location: currentEdicion.location,
-          participants: currentEdicion.participants,
-          visitors: currentEdicion.visitors,
-          video_url: currentEdicion.video_url || null,
-          video_type: currentEdicion.video_type || null,
-        });
+        // ACTUALIZAR EDICIÓN EXISTENTE
+        console.log("✏️ ACTUALIZAR EXISTENTE - ID:", edicionId);
+
+        try {
+          await updateDocument("editions", edicionId, edicionData);
+          console.log("✅ ACTUALIZADA exitosamente");
+        } catch (updateError: any) {
+          console.error("⚠️ Error al actualizar:", updateError.message);
+
+          // Verificar si el documento realmente existe
+          const docExists = await getDocument("editions", edicionId);
+          console.log(
+            "🔍 Verificación de existencia:",
+            docExists ? "SÍ EXISTE" : "NO EXISTE"
+          );
+
+          if (!docExists) {
+            // El documento no existe, crear uno nuevo
+            console.log("📝 Creando nuevo documento con los datos actuales");
+            const newId = await addDocument("editions", {
+              ...edicionData,
+              created_at: new Date(),
+            });
+            console.log("✅ Documento creado con nuevo ID:", newId);
+
+            // Actualizar el ID en el estado
+            edicionId = newId;
+            setCurrentEdicion({ ...currentEdicion, id: newId });
+          } else {
+            // El documento existe pero hay otro error
+            throw updateError;
+          }
+        }
       }
 
       // Guardar imágenes en la base de datos
       if (edicionId) {
-        const currentImages = edicionImages[currentEdicion.id] || [];
-        for (const imageUrl of currentImages) {
-          // Verificar si la imagen ya existe en la base de datos
-          const existingImages = await getDocumentsWithFilter(
-            "images",
-            "url",
-            imageUrl
-          );
+        const currentImages =
+          edicionImages[currentEdicion.id] || edicionImages[edicionId] || [];
+        console.log(
+          `💾 Sincronizando ${currentImages.length} imágenes para ID: ${edicionId}`
+        );
 
-          if (existingImages.length === 0) {
-            // Si no existe, insertarla
+        // Obtener las imágenes actuales en la base de datos para esta edición
+        const existingImagesInDb = await getDocumentsWithFilter(
+          "images",
+          "section_id",
+          edicionId
+        );
+
+        // Crear un set de URLs actuales en el estado local
+        const currentImageUrls = new Set(currentImages);
+
+        // Eliminar imágenes que ya no están en el estado local
+        let deletedCount = 0;
+        for (const dbImage of existingImagesInDb) {
+          const imageUrl = (dbImage as any).url;
+          if (!currentImageUrls.has(imageUrl)) {
+            await deleteDocument("images", dbImage.id);
+            deletedCount++;
+          }
+        }
+
+        // Crear un set de URLs existentes en la BD
+        const existingImageUrls = new Set(
+          existingImagesInDb.map((img: any) => img.url)
+        );
+
+        // Agregar imágenes nuevas que no están en la BD
+        let addedCount = 0;
+        for (const imageUrl of currentImages) {
+          if (!existingImageUrls.has(imageUrl)) {
             await addDocument("images", {
               url: imageUrl,
               alt: `Imagen de ${currentEdicion.title}`,
               section: "editions",
               section_id: edicionId,
             });
+            addedCount++;
           }
         }
+
+        console.log(
+          `✅ Sincronización completada: +${addedCount} nuevas, -${deletedCount} eliminadas`
+        );
       }
 
       setHasUnsavedChanges(false);
       alert("Cambios guardados correctamente");
-      loadEdiciones();
+      await loadEdiciones();
       setCurrentEdicion(null);
       setIsEditing(false);
     } catch (error) {
-      console.error("Error guardando edición:", error);
-      alert("Error al guardar la edición");
+      console.error("❌ Error guardando edición:", error);
+      alert(`Error al guardar la edición: ${error}`);
     } finally {
       setIsSaving(false);
     }
@@ -436,6 +617,11 @@ export default function EdicionesAdminPage() {
   };
 
   const handleEdit = (edicion: Edicion) => {
+    console.log("✏️ EDITAR - Edición seleccionada:", {
+      id: edicion.id,
+      title: edicion.title,
+      tipoId: typeof edicion.id,
+    });
     setCurrentEdicion(edicion);
     setIsEditing(true);
     setHasUnsavedChanges(false);
@@ -448,6 +634,16 @@ export default function EdicionesAdminPage() {
   };
 
   const handleCancel = () => {
+    if (hasUnsavedChanges) {
+      if (
+        !confirm(
+          "Tienes cambios sin guardar. ¿Estás seguro de que quieres salir sin guardar?"
+        )
+      ) {
+        return;
+      }
+    }
+
     setCurrentEdicion(null);
     setIsEditing(false);
     setHasUnsavedChanges(false);
@@ -459,15 +655,41 @@ export default function EdicionesAdminPage() {
         <div className="container mx-auto px-6 py-8 pt-20">
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold text-bg-secondary font-bevietnam">
-              Administrar Ediciones
+              {isEditing
+                ? currentEdicion?.id
+                  ? `Editar: ${currentEdicion.title || "Edición"}`
+                  : "Nueva Edición"
+                : "Administrar Ediciones"}
             </h1>
-            <button
-              onClick={handleNew}
-              className="flex items-center gap-2 px-4 py-2 bg-accent-blue text-white rounded-lg hover:bg-accent-blue/90 transition-colors"
-            >
-              <HiPlus className="w-5 h-5" />
-              Nueva Edición
-            </button>
+            {isEditing ? (
+              <button
+                onClick={handleCancel}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                  />
+                </svg>
+                Volver a la Lista
+              </button>
+            ) : (
+              <button
+                onClick={handleNew}
+                className="flex items-center gap-2 px-4 py-2 bg-accent-blue text-white rounded-lg hover:bg-accent-blue/90 transition-colors"
+              >
+                <HiPlus className="w-5 h-5" />
+                Nueva Edición
+              </button>
+            )}
           </div>
 
           {isEditing && currentEdicion ? (
@@ -508,13 +730,7 @@ export default function EdicionesAdminPage() {
                       </label>
                       <input
                         type="date"
-                        value={
-                          currentEdicion.date
-                            ? new Date(currentEdicion.date)
-                                .toISOString()
-                                .split("T")[0]
-                            : ""
-                        }
+                        value={currentEdicion.date || ""}
                         onChange={(e) => {
                           setCurrentEdicion({
                             ...currentEdicion,
@@ -782,10 +998,10 @@ export default function EdicionesAdminPage() {
                     </div>
 
                     {/* Grid de imágenes estilo Pinterest */}
-                    {edicionImages[currentEdicion.id]?.length > 0 && (
+                    {processedImages[currentEdicion.id]?.length > 0 && (
                       <div className="relative">
                         <PinterestGrid
-                          images={edicionImages[currentEdicion.id].map(
+                          images={processedImages[currentEdicion.id].map(
                             (url, index) => ({
                               id: `edicion-${index}`,
                               url,
@@ -813,9 +1029,22 @@ export default function EdicionesAdminPage() {
                       </button>
                       <button
                         onClick={handleCancel}
-                        className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                        className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
                       >
-                        Cancelar
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                        Cancelar y Volver
                       </button>
                     </div>
                   </div>
@@ -873,13 +1102,13 @@ export default function EdicionesAdminPage() {
                   </div>
 
                   {/* Imágenes */}
-                  {edicionImages[currentEdicion.id]?.length > 0 && (
+                  {processedImages[currentEdicion.id]?.length > 0 && (
                     <div>
                       <h3 className="text-lg font-bold text-bg-secondary font-bevietnam mb-4">
-                        Imágenes ({edicionImages[currentEdicion.id].length})
+                        Imágenes ({processedImages[currentEdicion.id].length})
                       </h3>
                       <PinterestGrid
-                        images={edicionImages[currentEdicion.id].map(
+                        images={processedImages[currentEdicion.id].map(
                           (url, index) => ({
                             id: `preview-edicion-${index}`,
                             url,

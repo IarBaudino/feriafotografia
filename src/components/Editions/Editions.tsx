@@ -29,8 +29,10 @@ export default function Editions() {
   useEffect(() => {
     async function loadEditions() {
       try {
+        console.log("🔄 Iniciando carga de ediciones...");
         // Obtener ediciones desde Firebase
         const editionsData = await getCollection("editions");
+        console.log("📊 Datos de ediciones recibidos:", editionsData);
 
         if (editionsData && editionsData.length > 0) {
           // Ordenar por fecha
@@ -110,9 +112,12 @@ export default function Editions() {
           );
 
           setEditions(editionsWithImages);
+        } else {
+          console.log("⚠️ No se encontraron ediciones en la base de datos");
         }
       } catch (error) {
-        console.error("Error cargando ediciones:", error);
+        console.error("❌ Error cargando ediciones:", error);
+        console.error("Detalles del error:", error);
       } finally {
         setIsLoading(false);
       }

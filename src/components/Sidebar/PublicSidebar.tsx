@@ -28,6 +28,13 @@ export default function PublicSidebar({
 }: PublicSidebarProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
+  console.log(
+    "PublicSidebar render: currentId =",
+    currentId,
+    "sections =",
+    sections.length
+  );
+
   return (
     <>
       <button

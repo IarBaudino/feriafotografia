@@ -1,8 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
-// Autenticación simplificada - sin Supabase
 import { HiSave } from "react-icons/hi";
 import AuthCheck from "@/components/Auth/AuthCheck";
+import {
+  getCollection,
+  addDocument,
+  updateDocument,
+} from "@/lib/firestore-helpers";
 
 interface CallsContent {
   id?: string;
@@ -39,57 +43,28 @@ export default function CallsPage() {
 
   const loadCallsContent = async () => {
     try {
-      // Obtener el registro más reciente en lugar de usar .single()
-      const { data, error } = await supabase
-        .from("calls")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
+      const data = await getCollection("calls");
 
-      if (error) {
-        // Si no hay registros, usar valores por defecto
-        if (error.code === "PGRST116") {
-          console.log(
-            "No hay convocatorias existentes, usando valores por defecto"
-          );
-          setContent({
-            id: undefined,
-            is_active: false,
-            deadline: "",
-            feria_date: "",
-            location: "",
-            form_link: "",
-            title: "Convocatoria Abierta",
-            description:
-              "¡Participa en la próxima edición de la Feria de Fotografía!",
-            horario: "",
-          });
-        } else {
-          throw error;
-        }
-      } else if (data) {
-        console.log("Datos cargados:", data);
+      if (data && data.length > 0) {
+        const callData = data[0] as any;
         setContent({
-          ...data,
-          is_active: data.is_active || false,
+          id: callData.id,
+          is_active: callData.is_active || false,
+          deadline: callData.deadline?.toDate
+            ? callData.deadline.toDate().toISOString().split("T")[0]
+            : callData.deadline || "",
+          feria_date: callData.feria_date?.toDate
+            ? callData.feria_date.toDate().toISOString().split("T")[0]
+            : callData.feria_date || "",
+          location: callData.location || "",
+          form_link: callData.form_link || "",
+          title: callData.title || "Convocatoria Abierta",
+          description: callData.description || "",
+          horario: callData.horario || "",
         });
       }
     } catch (error) {
-      console.error("Error cargando contenido:", error);
-      // En caso de error, usar valores por defecto
-      setContent({
-        id: undefined,
-        is_active: false,
-        deadline: "",
-        feria_date: "",
-        location: "",
-        form_link: "",
-        title: "Convocatoria Abierta",
-        description:
-          "¡Participa en la próxima edición de la Feria de Fotografía!",
-        horario: "",
-      });
+      console.error("❌ Error cargando contenido:", error);
     } finally {
       setIsLoading(false);
     }
@@ -98,35 +73,36 @@ export default function CallsPage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // Preparar datos para guardar, manejando fechas vacías
-      const dataToSave = {
-        id: content.id,
+      const callsData = {
         is_active: Boolean(content.is_active),
-        deadline: content.deadline || null, // Si la fecha está vacía, usar null
-        feria_date: content.feria_date || null,
+        deadline: content.deadline ? new Date(content.deadline) : null,
+        feria_date: content.feria_date ? new Date(content.feria_date) : null,
         location: content.location || null,
         form_link: content.form_link || "",
         title: content.title,
         description: content.description,
         horario: content.horario || null,
+        updated_at: new Date(),
       };
 
-      console.log("Estado actual:", content);
-      console.log("Datos a guardar:", dataToSave);
-
-      const { data, error } = await supabase
-        .from("calls")
-        .upsert(dataToSave)
-        .select();
-
-      if (error) throw error;
-      console.log("Datos guardados:", data);
+      if (content.id) {
+        // Actualizar convocatoria existente
+        await updateDocument("calls", content.id, callsData);
+      } else {
+        // Crear nueva convocatoria
+        const newId = await addDocument("calls", {
+          ...callsData,
+          created_at: new Date(),
+        });
+        setContent({ ...content, id: newId });
+      }
 
       setHasUnsavedChanges(false);
       alert("Cambios guardados correctamente");
+      await loadCallsContent();
     } catch (error) {
-      console.error("Error guardando cambios:", error);
-      alert("Error al guardar los cambios");
+      console.error("❌ Error guardando cambios:", error);
+      alert(`Error al guardar los cambios: ${error}`);
     } finally {
       setIsSaving(false);
     }

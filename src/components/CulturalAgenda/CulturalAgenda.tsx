@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   HiCalendar,
@@ -7,116 +7,84 @@ import {
   HiExternalLink,
   HiFilter,
 } from "react-icons/hi";
+import { getCollection } from "@/lib/firestore-helpers";
 
 interface Event {
-  id: number;
+  id: string;
   title: string;
   type: "curso" | "evento";
-  date: string;
-  endDate?: string;
+  date: any; // Firebase Timestamp
+  endDate?: any; // Firebase Timestamp
   location: string;
   shortDescription: string;
   description: string;
   link?: string;
   image?: string;
   organizer: string;
+  created_at?: any; // Firebase Timestamp
+  updated_at?: any; // Firebase Timestamp
 }
 
-const events: Event[] = [
-  {
-    id: 1,
-    title: "Taller de Fotografía Analógica",
-    type: "curso",
-    date: "2024-03-15",
-    endDate: "2024-04-15",
-    location: "Palermo, CABA",
-    shortDescription:
-      "Introducción al mundo de la fotografía analógica: técnicas básicas, manejo de cámara y proceso de revelado.",
-    description:
-      "Aprende las bases de la fotografía analógica, desde el manejo de la cámara hasta el revelado en laboratorio. Valor del curso: $25.000. Cupos limitados a 10 personas.",
-    organizer: "Laboratorio Análogo",
-    link: "https://ejemplo.com/curso",
-    image: "/agenda/curso-analogica.jpg",
-  },
-  {
-    id: 2,
-    title: "Miradas del Sur - Exposición Fotográfica",
-    type: "evento",
-    date: "2024-03-20",
-    endDate: "2024-04-10",
-    location: "Centro Cultural Recoleta",
-    shortDescription:
-      "Exposición colectiva que reúne el trabajo de 15 fotógrafos emergentes del sur de América Latina.",
-    description:
-      "Una muestra colectiva que reúne el trabajo de 15 fotógrafos emergentes del sur de América Latina. La exposición explora las diferentes perspectivas sobre la vida cotidiana y los paisajes de la región. Entrada libre y gratuita.",
-    organizer: "Colectivo Fotográfico del Sur",
-    link: "https://ejemplo.com/miradas-del-sur",
-    image: "/agenda/expo-miradas.jpg",
-  },
-  {
-    id: 3,
-    title: "Workshop de Retrato Editorial",
-    type: "curso",
-    date: "2024-04-05",
-    location: "San Telmo, CABA",
-    shortDescription:
-      "Intensivo de un día donde aprenderás las técnicas fundamentales del retrato editorial.",
-    description:
-      "Intensivo de un día donde aprenderás las técnicas fundamentales del retrato editorial. Incluye práctica con modelo en estudio. Valor del workshop: $15.000. Incluye coffee break y material teórico.",
-    organizer: "Estudio Visual",
-    link: "https://ejemplo.com/workshop-retrato",
-    image: "/agenda/workshop-retrato.jpg",
-  },
-  {
-    id: 4,
-    title: "Territorios Invisibles - Muestra Individual",
-    type: "evento",
-    date: "2024-03-25",
-    endDate: "2024-04-25",
-    location: "Galería Luz Verde, Villa Crespo",
-    shortDescription:
-      "Primera muestra individual de la fotógrafa María González.",
-    description:
-      "Primera muestra individual de la fotógrafa María González. Un recorrido visual por espacios urbanos olvidados y su transformación a través del tiempo. Inauguración: 19hs con la presencia de la artista. Entrada libre y gratuita.",
-    organizer: "Galería Luz Verde",
-    link: "https://ejemplo.com/territorios-invisibles",
-    image: "/agenda/territorios.jpg",
-  },
-  {
-    id: 5,
-    title: "Curso de Iluminación Natural y Artificial",
-    type: "curso",
-    date: "2024-04-10",
-    endDate: "2024-05-15",
-    location: "Núñez, CABA",
-    shortDescription:
-      "Curso teórico-práctico sobre el manejo de la luz en fotografía.",
-    description:
-      "Curso teórico-práctico sobre el manejo de la luz en fotografía. 6 encuentros donde aprenderás desde el uso de la luz natural hasta el manejo de flashes y modificadores. Valor del curso: $30.000. Incluye equipo para prácticas.",
-    organizer: "Escuela de Fotografía Creativa",
-    link: "https://ejemplo.com/curso-iluminacion",
-    image: "/agenda/curso-luz.jpg",
-  },
-  {
-    id: 6,
-    title: "Fotografía Urbana - Muestra Colectiva",
-    type: "evento",
-    date: "2024-04-15",
-    endDate: "2024-05-15",
-    location: "Centro Cultural San Martín",
-    shortDescription:
-      "20 fotógrafos urbanos presentan su visión de la ciudad a través de diferentes estilos y técnicas.",
-    description:
-      "20 fotógrafos urbanos presentan su visión de la ciudad a través de diferentes estilos y técnicas. La muestra incluye charlas con los artistas los días sábados. Visitas guiadas disponibles. Entrada gratuita.",
-    organizer: "Colectivo Ciudad Visual",
-    link: "https://ejemplo.com/foto-urbana",
-    image: "/agenda/urbana.jpg",
-  },
-];
+// Los eventos ahora se cargan desde Firebase
 
 export default function CulturalAgenda() {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"todos" | "curso" | "evento">("todos");
-  const [expandedEvent, setExpandedEvent] = useState<number | null>(null);
+  const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        console.log("CulturalAgenda: Cargando eventos desde Firebase...");
+
+        const eventsData = await getCollection("events");
+        console.log("CulturalAgenda: Eventos cargados:", eventsData);
+
+        if (eventsData && eventsData.length > 0) {
+          // Procesar fechas de Firebase
+          const processedEvents = eventsData.map((event: any) => ({
+            ...event,
+            date: event.date?.toDate
+              ? event.date.toDate()
+              : new Date(event.date),
+            endDate: event.endDate?.toDate
+              ? event.endDate.toDate()
+              : event.endDate
+              ? new Date(event.endDate)
+              : undefined,
+            created_at: event.created_at?.toDate
+              ? event.created_at.toDate()
+              : new Date(event.created_at),
+            updated_at: event.updated_at?.toDate
+              ? event.updated_at.toDate()
+              : new Date(event.updated_at),
+          }));
+
+          // Ordenar por fecha
+          const sortedEvents = processedEvents.sort(
+            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+          );
+
+          setEvents(sortedEvents);
+        } else {
+          console.log("CulturalAgenda: No se encontraron eventos");
+          setEvents([]);
+        }
+      } catch (error) {
+        console.error("CulturalAgenda: Error cargando eventos:", error);
+        setError("Error cargando eventos");
+        setEvents([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadEvents();
+  }, []);
 
   const cardVariants = {
     hidden: {
@@ -171,6 +139,46 @@ export default function CulturalAgenda() {
   const filteredEvents = events
     .filter((event) => (filter === "todos" ? true : event.type === filter))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  if (isLoading) {
+    return (
+      <section
+        id="agenda"
+        className="section-padding bg-bg-primary overflow-hidden"
+      >
+        <div className="container-width">
+          <div className="text-center">
+            <h2 className="heading-2 text-bg-secondary font-bevietnam font-bold">
+              Agenda Cultural
+            </h2>
+            <p className="mt-2 text-text-primary/80 font-bevietnam font-normal">
+              Cargando eventos...
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section
+        id="agenda"
+        className="section-padding bg-bg-primary overflow-hidden"
+      >
+        <div className="container-width">
+          <div className="text-center">
+            <h2 className="heading-2 text-bg-secondary font-bevietnam font-bold">
+              Agenda Cultural
+            </h2>
+            <p className="mt-2 text-red-500 font-bevietnam font-normal">
+              {error}
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section
@@ -315,7 +323,7 @@ export default function CulturalAgenda() {
                           animate={{ y: 0, opacity: 1 }}
                           transition={{ delay: 0.3 }}
                           dangerouslySetInnerHTML={{
-                            __html: event.description
+                            __html: event.description,
                           }}
                         />
                         <motion.div

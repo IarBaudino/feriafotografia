@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-// Autenticación simplificada - sin Supabase
+// Migrado a Firebase
 import { HiSave, HiEye, HiEyeOff } from "react-icons/hi";
 import AuthCheck from "@/components/Auth/AuthCheck";
 import { AUTH_CONFIG } from "@/lib/auth-config";
@@ -21,9 +21,9 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const getUser = async () => {
-      const {
-        data: { user },
-      } = // Obtener usuario simplificado();
+      // TODO: Implementar obtención de usuario en Firebase
+      console.log("Obteniendo datos de usuario");
+      const user = null;
       setUser(user);
     };
     getUser();
@@ -52,9 +52,9 @@ export default function ProfilePage() {
 
     try {
       // Cambiar contraseña
-      const { error } = // Actualizar usuario simplificado({
-        password: newPassword,
-      });
+      // TODO: Implementar actualización de contraseña en Firebase
+      console.log("Actualizando contraseña");
+      const error = null;
 
       if (error) throw error;
 

@@ -59,7 +59,11 @@ export default function ExposicionesPage() {
         });
 
         setExposiciones(sortedExposiciones);
-        setCurrentExposicion(sortedExposiciones[0].id);
+
+        // Seleccionar automáticamente la primera exposición si hay alguna
+        if (sortedExposiciones.length > 0 && !currentExposicion) {
+          setCurrentExposicion(sortedExposiciones[0].id);
+        }
 
         const imagesData = await getDocumentsWithFilter(
           "images",

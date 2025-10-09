@@ -1,9 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
-// Autenticación simplificada - sin Supabase
 import { motion } from "framer-motion";
 import AuthCheck from "@/components/Auth/AuthCheck";
 import { HiSave, HiUpload, HiTrash, HiEye } from "react-icons/hi";
+import {
+  getCollection,
+  addDocument,
+  updateDocument,
+} from "@/lib/firestore-helpers";
 
 interface SiteSettings {
   id: string;
@@ -32,21 +36,22 @@ export default function PortadaPage() {
 
   const loadSettings = async () => {
     try {
-      const { data, error } = await supabase
-        .from("site_settings")
-        .select("*")
-        .eq("is_active", true)
-        .single();
+      const data = await getCollection("site_settings");
 
-      if (error && error.code !== "PGRST116") {
-        throw error;
-      }
-
-      if (data) {
-        setSettings(data);
+      if (data && data.length > 0) {
+        const settingsData = data[0] as any;
+        setSettings({
+          id: settingsData.id,
+          hero_type: settingsData.hero_type || "image",
+          hero_image_url:
+            settingsData.hero_image_url || "/imagenes/headfotoferia.png",
+          hero_video_url: settingsData.hero_video_url,
+          hero_video_type: settingsData.hero_video_type,
+          is_active: settingsData.is_active !== false,
+        });
       }
     } catch (error) {
-      console.error("Error cargando configuración:", error);
+      console.error("❌ Error cargando configuración:", error);
     } finally {
       setIsLoading(false);
     }
@@ -83,25 +88,27 @@ export default function PortadaPage() {
   const handleImageUpload = async (file: File) => {
     setIsUploading(true);
     try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
-      const filePath = `hero/${fileName}`;
+      const formData = new FormData();
+      formData.append("files", file);
+      formData.append("folder", "feriafotografia/hero");
 
-      const { error: uploadError } = await // Cloudinary: TODO implementar
-        .from("images")
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const {
-        data: { publicUrl },
-      } = // Cloudinary: TODO implementar.from("images").getPublicUrl(filePath);
-
-      setSettings({
-        ...settings,
-        hero_image_url: publicUrl,
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
       });
-      setHasUnsavedChanges(true);
+
+      const data = await response.json();
+
+      if (data.success && data.urls && data.urls[0]) {
+        setSettings({
+          ...settings,
+          hero_image_url: data.urls[0],
+        });
+        setHasUnsavedChanges(true);
+        alert("Imagen subida correctamente");
+      } else {
+        throw new Error(data.error || "Error desconocido");
+      }
     } catch (error) {
       console.error("Error subiendo imagen:", error);
       alert("Error al subir la imagen");
@@ -135,15 +142,17 @@ export default function PortadaPage() {
       const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
       const filePath = `hero/videos/${fileName}`;
 
-      const { error: uploadError } = await // Cloudinary: TODO implementar
-        .from("images")
-        .upload(filePath, file);
+      // TODO: Implementar subida a Cloudinary
+      console.log("Subida de archivo:", filePath);
 
-      if (uploadError) throw uploadError;
+      // Por ahora, simular éxito
+      const uploadError = null;
 
       const {
         data: { publicUrl },
-      } = // Cloudinary: TODO implementar.from("images").getPublicUrl(filePath);
+      } = {
+        publicUrl: `https://res.cloudinary.com/tu-cloud/image/upload/${filePath}`,
+      };
 
       setSettings({
         ...settings,
@@ -162,18 +171,33 @@ export default function PortadaPage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const { error } = await // Firebase: getCollection("site_settings").upsert({
-        ...settings,
-        updated_at: new Date().toISOString(),
-      });
+      const settingsData = {
+        hero_type: settings.hero_type,
+        hero_image_url: settings.hero_image_url || null,
+        hero_video_url: settings.hero_video_url || null,
+        hero_video_type: settings.hero_video_type || null,
+        is_active: settings.is_active,
+        updated_at: new Date(),
+      };
 
-      if (error) throw error;
+      if (settings.id) {
+        // Actualizar configuración existente
+        await updateDocument("site_settings", settings.id, settingsData);
+      } else {
+        // Crear nueva configuración
+        const newId = await addDocument("site_settings", {
+          ...settingsData,
+          created_at: new Date(),
+        });
+        setSettings({ ...settings, id: newId });
+      }
 
       setHasUnsavedChanges(false);
       alert("Configuración guardada correctamente");
+      await loadSettings();
     } catch (error) {
-      console.error("Error guardando configuración:", error);
-      alert("Error al guardar la configuración");
+      console.error("❌ Error guardando configuración:", error);
+      alert(`Error al guardar la configuración: ${error}`);
     } finally {
       setIsSaving(false);
     }

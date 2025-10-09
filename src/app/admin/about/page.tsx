@@ -6,6 +6,7 @@ import {
   addDocument,
   updateDocument,
   deleteDocument,
+  removeDuplicateImages,
 } from "@/lib/firestore-helpers";
 import dynamic from "next/dynamic";
 import { HiSave, HiTrash, HiUpload } from "react-icons/hi";
@@ -15,7 +16,7 @@ import AuthCheck from "@/components/Auth/AuthCheck";
 import PinterestGrid from "@/components/ui/PinterestGrid";
 
 interface AboutContent {
-  id?: number;
+  id?: string;
   title: string;
   content: string;
   images: string[];
@@ -50,10 +51,15 @@ export default function AboutPage() {
         "about"
       );
 
+      // Filtrar duplicados
+      const uniqueImages = removeDuplicateImages(imagesData || []);
+
       if (aboutData) {
         setContent({
-          ...aboutData,
-          images: imagesData?.map((img) => img.url) || [],
+          id: aboutData.id,
+          title: (aboutData as any).title || "",
+          content: (aboutData as any).content || "",
+          images: uniqueImages.map((img: any) => img.url) || [],
         });
       }
     } catch (error) {
@@ -66,10 +72,31 @@ export default function AboutPage() {
   const handleImageUpload = async (files: FileList) => {
     setIsUploading(true);
     try {
-      // TODO: Implementar subida a Cloudinary
-      alert(
-        "Funcionalidad de subida de imágenes pendiente de implementar con Cloudinary"
-      );
+      const formData = new FormData();
+      Array.from(files).forEach((file) => {
+        formData.append("files", file);
+      });
+      formData.append("folder", "feriafotografia/about");
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.urls) {
+        // Agregar las nuevas URLs al estado local
+        const newImages = [...content.images, ...data.urls];
+        setContent({
+          ...content,
+          images: newImages,
+        });
+        setHasUnsavedChanges(true);
+        alert(`${data.urls.length} imagen(es) subida(s) correctamente`);
+      } else {
+        throw new Error(data.error || "Error desconocido");
+      }
     } catch (error) {
       console.error("Error subiendo imágenes:", error);
       alert("Error al subir las imágenes");
@@ -105,17 +132,31 @@ export default function AboutPage() {
     try {
       // Guardar el contenido principal
       let aboutId = content.id;
-      if (!aboutId) {
-        // Si no existe, crear el registro
+
+      // Intentar actualizar si existe ID
+      if (aboutId) {
+        try {
+          await updateDocument("about", aboutId, {
+            title: content.title,
+            content: content.content,
+            updated_at: new Date(),
+          });
+        } catch (error) {
+          console.log("Documento no existe, creando uno nuevo...");
+          // Si falla la actualización, crear un nuevo documento
+          aboutId = await addDocument("about", {
+            title: content.title,
+            content: content.content,
+            created_at: new Date(),
+            updated_at: new Date(),
+          });
+        }
+      } else {
+        // Si no existe ID, crear el registro
         aboutId = await addDocument("about", {
           title: content.title,
           content: content.content,
-          updated_at: new Date(),
-        });
-      } else {
-        await updateDocument("about", aboutId, {
-          title: content.title,
-          content: content.content,
+          created_at: new Date(),
           updated_at: new Date(),
         });
       }

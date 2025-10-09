@@ -1,7 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { getCollection } from "@/lib/firestore-helpers";
+import {
+  getCollection,
+  getDocumentsWithFilter,
+  removeDuplicateImages,
+} from "@/lib/firestore-helpers";
 import {
   HiUsers,
   HiClock,
@@ -21,9 +25,17 @@ interface Stats {
   totalEditions: number;
   totalTeamMembers: number;
   totalEvents: number;
+  // Imágenes para mostrar en el dashboard
+  exhibitionImages: any[];
+  editionImages: any[];
+  teamImages: any[];
+  eventImages: any[];
+  aboutImages: any[];
 }
 
 export default function DashboardPage() {
+  console.log("DashboardPage: Componente renderizado");
+
   const [stats, setStats] = useState<Stats>({
     daily: 0,
     weekly: 0,
@@ -33,16 +45,26 @@ export default function DashboardPage() {
     totalEditions: 0,
     totalTeamMembers: 0,
     totalEvents: 0,
+    exhibitionImages: [],
+    editionImages: [],
+    teamImages: [],
+    eventImages: [],
+    aboutImages: [],
   });
   const [isLoading, setIsLoading] = useState(true);
+
+  console.log("DashboardPage: Estado actual", { isLoading, stats });
 
   useEffect(() => {
     loadStats();
   }, []);
 
   const loadStats = async () => {
+    console.log("DashboardPage: Iniciando carga de estadísticas");
     try {
       setIsLoading(true);
+      console.log("DashboardPage: Cargando colecciones...");
+
       // Cargar estadísticas de contenido
       const [exhibitionsData, editionsData, teamData, eventsData] =
         await Promise.all([
@@ -52,9 +74,75 @@ export default function DashboardPage() {
           getCollection("events"),
         ]);
 
+      // Cargar imágenes para cada sección
+      console.log("DashboardPage: Cargando imágenes...");
+      const [
+        exhibitionImagesData,
+        editionImagesData,
+        teamImagesData,
+        eventImagesData,
+        aboutImagesData,
+      ] = await Promise.all([
+        getDocumentsWithFilter("images", "section", "exhibitions"),
+        getDocumentsWithFilter("images", "section", "editions"),
+        getDocumentsWithFilter("images", "section", "team"),
+        getDocumentsWithFilter("images", "section", "events"),
+        getDocumentsWithFilter("images", "section", "about"),
+      ]);
+
+      // Filtrar duplicados en cada colección de imágenes
+      const uniqueExhibitionImages = removeDuplicateImages(
+        exhibitionImagesData || []
+      );
+      const uniqueEditionImages = removeDuplicateImages(
+        editionImagesData || []
+      );
+
+      console.log(
+        "Dashboard Ediciones: Imágenes antes del filtro:",
+        editionImagesData?.length || 0
+      );
+      console.log(
+        "Dashboard Ediciones: Imágenes después del filtro:",
+        uniqueEditionImages.length
+      );
+      console.log(
+        "Dashboard Ediciones: URLs de imágenes:",
+        uniqueEditionImages.map((img) => ({
+          id: img.id,
+          url: img.url,
+          section_id: img.section_id,
+          alt: img.alt,
+        }))
+      );
+      const uniqueTeamImages = removeDuplicateImages(teamImagesData || []);
+      const uniqueEventImages = removeDuplicateImages(eventImagesData || []);
+      const uniqueAboutImages = removeDuplicateImages(aboutImagesData || []);
+
+      console.log("DashboardPage: Imágenes procesadas", {
+        exhibitions: uniqueExhibitionImages.length,
+        editions: uniqueEditionImages.length,
+        team: uniqueTeamImages.length,
+        events: uniqueEventImages.length,
+        about: uniqueAboutImages.length,
+      });
+
+      console.log("DashboardPage: Datos cargados", {
+        exhibitions: exhibitionsData?.length || 0,
+        editions: editionsData?.length || 0,
+        team: teamData?.length || 0,
+        events: eventsData?.length || 0,
+      });
+
+      // Log detallado de cada colección
+      console.log("DashboardPage: Detalles de exposiciones:", exhibitionsData);
+      console.log("DashboardPage: Detalles de ediciones:", editionsData);
+      console.log("DashboardPage: Detalles de equipo:", teamData);
+      console.log("DashboardPage: Detalles de eventos:", eventsData);
+
       // Aquí podrías cargar visitas reales de la tabla page_views
       // Pero si no hay datos, los contadores quedarán en cero
-      setStats({
+      const newStats = {
         daily: 0, // Siempre cero hasta que haya datos reales
         weekly: 0,
         monthly: 0,
@@ -63,10 +151,21 @@ export default function DashboardPage() {
         totalEditions: editionsData?.length || 0,
         totalTeamMembers: teamData?.length || 0,
         totalEvents: eventsData?.length || 0,
-      });
+        exhibitionImages: uniqueExhibitionImages,
+        editionImages: uniqueEditionImages,
+        teamImages: uniqueTeamImages,
+        eventImages: uniqueEventImages,
+        aboutImages: uniqueAboutImages,
+      };
+
+      console.log("DashboardPage: Actualizando estadísticas", newStats);
+      setStats(newStats);
     } catch (error) {
-      console.error("Error cargando estadísticas:", error);
+      console.error("DashboardPage: Error cargando estadísticas:", error);
     } finally {
+      console.log(
+        "DashboardPage: Finalizando carga, estableciendo isLoading: false"
+      );
       setIsLoading(false);
     }
   };
@@ -134,6 +233,7 @@ export default function DashboardPage() {
   ];
 
   if (isLoading) {
+    console.log("DashboardPage: Mostrando pantalla de carga");
     return (
       <div className="max-w-6xl mx-auto">
         <h1 className="text-2xl font-bold text-bg-secondary font-bevietnam mb-6">
@@ -146,6 +246,7 @@ export default function DashboardPage() {
     );
   }
 
+  console.log("DashboardPage: Renderizando contenido principal");
   return (
     <div className="max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold text-bg-secondary font-bevietnam mb-6">
@@ -211,6 +312,119 @@ export default function DashboardPage() {
               </div>
             </motion.div>
           ))}
+        </div>
+      </div>
+
+      {/* Galería de Imágenes */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold text-bg-secondary mb-4 font-bevietnam">
+          Galería de Imágenes
+        </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Exposiciones */}
+          <div className="bg-white p-5 rounded-lg shadow-sm">
+            <h3 className="text-md font-bold mb-3 text-bg-secondary">
+              Exposiciones ({stats.exhibitionImages.length} imágenes)
+            </h3>
+            <div className="grid grid-cols-3 gap-2">
+              {stats.exhibitionImages.slice(0, 6).map((img, index) => (
+                <div
+                  key={index}
+                  className="aspect-square relative overflow-hidden rounded"
+                >
+                  <img
+                    src={img.url}
+                    alt={`Exposición ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Ediciones */}
+          <div className="bg-white p-5 rounded-lg shadow-sm">
+            <h3 className="text-md font-bold mb-3 text-bg-secondary">
+              Ediciones ({stats.editionImages.length} imágenes)
+            </h3>
+            <div className="grid grid-cols-3 gap-2">
+              {stats.editionImages.slice(0, 6).map((img, index) => (
+                <div
+                  key={index}
+                  className="aspect-square relative overflow-hidden rounded"
+                >
+                  <img
+                    src={img.url}
+                    alt={`Edición ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Equipo */}
+          <div className="bg-white p-5 rounded-lg shadow-sm">
+            <h3 className="text-md font-bold mb-3 text-bg-secondary">
+              Equipo ({stats.teamImages.length} imágenes)
+            </h3>
+            <div className="grid grid-cols-3 gap-2">
+              {stats.teamImages.slice(0, 6).map((img, index) => (
+                <div
+                  key={index}
+                  className="aspect-square relative overflow-hidden rounded"
+                >
+                  <img
+                    src={img.url}
+                    alt={`Miembro ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Eventos */}
+          <div className="bg-white p-5 rounded-lg shadow-sm">
+            <h3 className="text-md font-bold mb-3 text-bg-secondary">
+              Eventos ({stats.eventImages.length} imágenes)
+            </h3>
+            <div className="grid grid-cols-3 gap-2">
+              {stats.eventImages.slice(0, 6).map((img, index) => (
+                <div
+                  key={index}
+                  className="aspect-square relative overflow-hidden rounded"
+                >
+                  <img
+                    src={img.url}
+                    alt={`Evento ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* About */}
+          <div className="bg-white p-5 rounded-lg shadow-sm">
+            <h3 className="text-md font-bold mb-3 text-bg-secondary">
+              About ({stats.aboutImages.length} imágenes)
+            </h3>
+            <div className="grid grid-cols-3 gap-2">
+              {stats.aboutImages.slice(0, 6).map((img, index) => (
+                <div
+                  key={index}
+                  className="aspect-square relative overflow-hidden rounded"
+                >
+                  <img
+                    src={img.url}
+                    alt={`About ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 

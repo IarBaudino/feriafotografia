@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter, usePathname } from "next/navigation";
-// Autenticación simplificada - sin Supabase
+import { onAuthChange } from "@/lib/firebase-auth";
 import {
   HiCalendar,
   HiPhotograph,
@@ -81,31 +81,96 @@ export default function AdminLayout({
   const pathname = usePathname();
 
   useEffect(() => {
-    checkAuth();
-  }, []);
+    console.log("AdminLayout: Iniciando verificación de autenticación");
+    // Escuchar cambios de autenticación de Firebase
+    const unsubscribe = onAuthChange((user) => {
+      console.log("AdminLayout: onAuthChange callback ejecutado", {
+        user: user?.email,
+        pathname,
+      });
+
+      if (user) {
+        console.log(
+          "AdminLayout: Usuario autenticado en Firebase:",
+          user.email
+        );
+        setIsAuthenticated(true);
+        localStorage.setItem("admin_authenticated", "true");
+        localStorage.setItem(
+          "admin_user",
+          JSON.stringify({ email: user.email })
+        );
+        console.log("AdminLayout: Estado actualizado - isAuthenticated: true");
+      } else {
+        console.log("AdminLayout: Usuario no autenticado en Firebase");
+        setIsAuthenticated(false);
+        localStorage.removeItem("admin_authenticated");
+        localStorage.removeItem("admin_user");
+        if (
+          pathname !== "/admin/login" &&
+          pathname !== "/admin/register" &&
+          pathname !== "/admin/reset"
+        ) {
+          console.log("AdminLayout: Redirigiendo a login");
+          router.push("/admin/login");
+        }
+      }
+      console.log("AdminLayout: Estableciendo isLoading: false");
+      setIsLoading(false);
+    });
+
+    return () => {
+      console.log("AdminLayout: Limpiando listener de autenticación");
+      unsubscribe();
+    };
+  }, [router, pathname]);
 
   useEffect(() => {
     trackPageView(window.location.pathname);
   }, []);
 
-  const checkAuth = async () => {
-    try {
-      // Autenticación simplificada - permitir acceso directo
-      setIsAuthenticated(true);
-    } catch (error) {
-      console.error("Error checking auth:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  console.log("AdminLayout: Estado actual", {
+    isLoading,
+    isAuthenticated,
+    pathname,
+  });
 
   if (isLoading) {
-    return <div>Cargando...</div>;
+    console.log("AdminLayout: Mostrando pantalla de carga");
+    return (
+      <div className="flex justify-center items-center h-screen bg-bg-primary">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-accent-blue mx-auto mb-4"></div>
+          <p className="text-bg-secondary font-bevietnam">
+            Verificando autenticación...
+          </p>
+        </div>
+      </div>
+    );
   }
 
-  if (!isAuthenticated && pathname !== "/admin/login") {
-    return null;
+  if (
+    !isAuthenticated &&
+    pathname !== "/admin/login" &&
+    pathname !== "/admin/register" &&
+    pathname !== "/admin/reset"
+  ) {
+    console.log(
+      "AdminLayout: Usuario no autenticado, mostrando pantalla de redirección"
+    );
+    return (
+      <div className="flex justify-center items-center h-screen bg-bg-primary">
+        <div className="text-center">
+          <p className="text-bg-secondary font-bevietnam mb-4">
+            Redirigiendo al login...
+          </p>
+          <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-accent-blue mx-auto"></div>
+        </div>
+      </div>
+    );
   }
+
+  console.log("AdminLayout: Renderizando contenido principal");
 
   // Páginas que no deben mostrar el layout de administración
   const publicPages = ["/admin/login", "/admin/register", "/admin/reset"];

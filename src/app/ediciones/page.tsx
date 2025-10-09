@@ -44,9 +44,7 @@ export default function EdicionesPage() {
 
   const loadEdiciones = async () => {
     try {
-      console.log("Cargando ediciones...");
       const edicionesData = await getCollection("editions");
-      console.log("Ediciones cargadas:", edicionesData);
 
       if (edicionesData && edicionesData.length > 0) {
         // Ordenar por fecha descendente
@@ -65,15 +63,18 @@ export default function EdicionesPage() {
         }));
 
         setEdiciones(processedEdiciones);
-        setCurrentEdicion(processedEdiciones[0].id);
 
-        console.log("Cargando imágenes...");
+        // Seleccionar automáticamente la primera edición (más reciente)
+        if (processedEdiciones.length > 0 && !currentEdicion) {
+          setCurrentEdicion(processedEdiciones[0].id);
+        }
+
+        // Cargar imágenes
         const imagesData = await getDocumentsWithFilter(
           "images",
           "section",
           "editions"
         );
-        console.log("Imágenes cargadas:", imagesData);
 
         if (imagesData) {
           // Filtrar duplicados por URL
@@ -87,7 +88,6 @@ export default function EdicionesPage() {
             return acc;
           }, {} as Record<string, EdicionImage[]>);
 
-          console.log("Imágenes agrupadas:", imagesByEdition);
           setEdicionImages(imagesByEdition);
         }
       }

@@ -1,9 +1,14 @@
 "use client";
 import { useState, useEffect } from "react";
-// Autenticación simplificada - sin Supabase
 import { motion } from "framer-motion";
 import AuthCheck from "@/components/Auth/AuthCheck";
-import { HiPlus } from "react-icons/hi2";
+import { HiPlus, HiPencil, HiTrash } from "react-icons/hi";
+import {
+  getCollection,
+  addDocument,
+  updateDocument,
+  deleteDocument,
+} from "@/lib/firestore-helpers";
 
 interface TeamMember {
   id: string;
@@ -22,6 +27,7 @@ export default function TeamPage() {
   const [currentMember, setCurrentMember] = useState<Partial<TeamMember>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   useEffect(() => {
     loadTeamMembers();
@@ -30,14 +36,11 @@ export default function TeamPage() {
   const loadTeamMembers = async () => {
     try {
       setIsLoading(true);
-      console.log("Cargando miembros del equipo...");
-      const { data, error } = await // Firebase: getCollection("team_members").select("*");
+      const data = await getCollection("team_members");
 
-      console.log("Datos recibidos:", data);
-      console.log("Error:", error);
-
-      if (error) throw error;
-      setMembers(data || []);
+      if (data) {
+        setMembers(data as TeamMember[]);
+      }
     } catch (error) {
       console.error("Error cargando miembros:", error);
       setMembers([]);
@@ -50,20 +53,28 @@ export default function TeamPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${Math.random()}.${fileExt}`;
-    const filePath = `team/${fileName}`;
+    try {
+      const formData = new FormData();
+      formData.append("files", file);
+      formData.append("folder", "feriafotografia/team");
 
-    const { error: uploadError } = await // Cloudinary: TODO implementar
-      .from("images")
-      .upload(filePath, file);
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
 
-    if (!uploadError) {
-      const {
-        data: { publicUrl },
-      } = // Cloudinary: TODO implementar.from("images").getPublicUrl(filePath);
+      const data = await response.json();
 
-      setCurrentMember({ ...currentMember, image_url: publicUrl });
+      if (data.success && data.urls && data.urls[0]) {
+        setCurrentMember({ ...currentMember, image_url: data.urls[0] });
+        setHasUnsavedChanges(true);
+        alert("Imagen subida correctamente");
+      } else {
+        throw new Error(data.error || "Error desconocido");
+      }
+    } catch (error) {
+      console.error("Error subiendo imagen:", error);
+      alert("Error al subir la imagen");
     }
   };
 
@@ -71,8 +82,6 @@ export default function TeamPage() {
     e.preventDefault();
 
     try {
-      console.log("Intentando guardar:", currentMember);
-
       if (
         !currentMember.name ||
         !currentMember.role ||
@@ -82,30 +91,32 @@ export default function TeamPage() {
         return;
       }
 
+      const memberData = {
+        name: currentMember.name,
+        role: currentMember.role,
+        image_url: currentMember.image_url,
+        instagram: currentMember.instagram || null,
+        website: currentMember.website || null,
+        is_video: currentMember.is_video || false,
+      };
+
       if (currentMember.id) {
-        // Update
-        const { data, error } = await supabase
-          .from("team_members")
-          .update(currentMember)
-          .eq("id", currentMember.id)
-          .select();
-
-        if (error) throw error;
-        console.log("Miembro actualizado:", data);
+        // Actualizar miembro existente
+        await updateDocument("team_members", currentMember.id, memberData);
+        alert("Miembro actualizado correctamente");
       } else {
-        // Insert
-        const { data, error } = await supabase
-          .from("team_members")
-          .insert(currentMember)
-          .select();
-
-        if (error) throw error;
-        console.log("Nuevo miembro agregado:", data);
+        // Crear nuevo miembro
+        await addDocument("team_members", {
+          ...memberData,
+          created_at: new Date(),
+        });
+        alert("Miembro agregado correctamente");
       }
 
-      loadTeamMembers();
+      await loadTeamMembers();
       setIsEditing(false);
       setCurrentMember({});
+      setHasUnsavedChanges(false);
     } catch (error) {
       console.error("Error guardando miembro:", error);
       alert("Error al guardar el miembro");
@@ -115,6 +126,23 @@ export default function TeamPage() {
   const handleCreate = () => {
     setCurrentMember({});
     setIsEditing(true);
+    setHasUnsavedChanges(false);
+  };
+
+  const handleCancel = () => {
+    if (hasUnsavedChanges) {
+      if (
+        !confirm(
+          "Tienes cambios sin guardar. ¿Estás seguro de que quieres salir sin guardar?"
+        )
+      ) {
+        return;
+      }
+    }
+
+    setCurrentMember({});
+    setIsEditing(false);
+    setHasUnsavedChanges(false);
   };
 
   return (
@@ -124,15 +152,41 @@ export default function TeamPage() {
           {/* Encabezado */}
           <div className="flex justify-between items-center mb-8 pt-8">
             <h1 className="text-3xl font-bevietnam font-bold text-bg-secondary">
-              Administrar Equipo
+              {isEditing
+                ? currentMember?.id
+                  ? `Editar: ${currentMember.name || "Miembro"}`
+                  : "Nuevo Miembro"
+                : "Administrar Equipo"}
             </h1>
-            <button
-              onClick={handleCreate}
-              className="flex items-center gap-2 px-4 py-2 bg-accent-blue text-white rounded-lg hover:bg-opacity-90"
-            >
-              <HiPlus className="w-5 h-5" />
-              Nuevo Miembro
-            </button>
+            {isEditing ? (
+              <button
+                onClick={handleCancel}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                  />
+                </svg>
+                Volver a la Lista
+              </button>
+            ) : (
+              <button
+                onClick={handleCreate}
+                className="flex items-center gap-2 px-4 py-2 bg-accent-blue text-white rounded-lg hover:bg-opacity-90"
+              >
+                <HiPlus className="w-5 h-5" />
+                Nuevo Miembro
+              </button>
+            )}
           </div>
 
           {/* Contenido principal */}
@@ -172,12 +226,13 @@ export default function TeamPage() {
                     <input
                       type="text"
                       value={currentMember.name || ""}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setCurrentMember({
                           ...currentMember,
                           name: e.target.value,
-                        })
-                      }
+                        });
+                        setHasUnsavedChanges(true);
+                      }}
                       className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
                       required
                     />
@@ -191,12 +246,13 @@ export default function TeamPage() {
                     <input
                       type="text"
                       value={currentMember.role || ""}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setCurrentMember({
                           ...currentMember,
                           role: e.target.value,
-                        })
-                      }
+                        });
+                        setHasUnsavedChanges(true);
+                      }}
                       className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
                       required
                     />
@@ -212,12 +268,13 @@ export default function TeamPage() {
                       <input
                         type="text"
                         value={currentMember.instagram || ""}
-                        onChange={(e) =>
+                        onChange={(e) => {
                           setCurrentMember({
                             ...currentMember,
                             instagram: e.target.value,
-                          })
-                        }
+                          });
+                          setHasUnsavedChanges(true);
+                        }}
                         className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
                       />
                     </div>
@@ -255,6 +312,7 @@ export default function TeamPage() {
                           ...currentMember,
                           website: website,
                         });
+                        setHasUnsavedChanges(true);
                       }}
                       className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
                     />
@@ -268,14 +326,27 @@ export default function TeamPage() {
                   <div className="flex justify-end space-x-2 pt-4">
                     <button
                       type="button"
-                      onClick={() => setIsEditing(false)}
-                      className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                      onClick={handleCancel}
+                      className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
                     >
-                      Cancelar
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                      Cancelar y Volver
                     </button>
                     <button
                       type="submit"
-                      className="px-4 py-2 bg-accent-green text-white rounded-lg hover:bg-opacity-90"
+                      className="px-6 py-3 bg-accent-green text-white rounded-lg hover:bg-opacity-90 transition-colors"
                     >
                       {currentMember.id ? "Guardar Cambios" : "Agregar Miembro"}
                     </button>
@@ -284,48 +355,81 @@ export default function TeamPage() {
               </div>
             ) : (
               // Grid de miembros
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {members.map((member) => (
-                  <motion.div
-                    key={member.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-white rounded-lg shadow-md p-4"
-                  >
-                    <img
-                      src={member.image_url}
-                      alt={member.name}
-                      className="w-full h-48 object-cover rounded-lg mb-4"
-                    />
-                    <h3 className="text-xl font-bold">{member.name}</h3>
-                    <p className="text-gray-600">{member.role}</p>
-                    <div className="mt-4 flex space-x-2">
-                      <button
-                        onClick={() => {
-                          setCurrentMember(member);
-                          setIsEditing(true);
-                        }}
-                        className="text-blue-500 hover:text-blue-700"
+              <div>
+                {isLoading ? (
+                  <div className="flex justify-center items-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-accent-blue"></div>
+                  </div>
+                ) : members.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500">
+                      No hay miembros del equipo todavía.
+                    </p>
+                    <p className="text-gray-400 text-sm mt-2">
+                      Haz clic en "Nuevo Miembro" para agregar uno.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {members.map((member) => (
+                      <motion.div
+                        key={member.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-white rounded-lg shadow-md p-4"
                       >
-                        Editar
-                      </button>
-                      <button
-                        onClick={async () => {
-                          if (confirm("¿Estás seguro?")) {
-                            await supabase
-                              .from("team_members")
-                              .delete()
-                              .eq("id", member.id);
-                            loadTeamMembers();
-                          }
-                        }}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
+                        <img
+                          src={member.image_url}
+                          alt={member.name}
+                          className="w-full h-48 object-cover rounded-lg mb-4"
+                        />
+                        <h3 className="text-xl font-bold">{member.name}</h3>
+                        <p className="text-gray-600">{member.role}</p>
+                        <div className="mt-4 flex space-x-2">
+                          <button
+                            onClick={() => {
+                              setCurrentMember(member);
+                              setIsEditing(true);
+                              setHasUnsavedChanges(false);
+                            }}
+                            className="text-blue-500 hover:text-blue-700 flex items-center gap-1"
+                          >
+                            <HiPencil className="w-4 h-4" />
+                            Editar
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (
+                                confirm(
+                                  `¿Estás seguro de que quieres eliminar a ${member.name}?`
+                                )
+                              ) {
+                                try {
+                                  await deleteDocument(
+                                    "team_members",
+                                    member.id
+                                  );
+                                  alert("Miembro eliminado correctamente");
+                                  await loadTeamMembers();
+                                } catch (error) {
+                                  console.error(
+                                    "Error eliminando miembro:",
+                                    error
+                                  );
+                                  alert("Error al eliminar el miembro");
+                                }
+                              }
+                            }}
+                            className="text-red-500 hover:text-red-700 flex items-center gap-1"
+                          >
+                            <HiTrash className="w-4 h-4" />
+                            Eliminar
+                          </button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

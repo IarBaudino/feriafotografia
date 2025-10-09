@@ -1,9 +1,14 @@
 "use client";
 import { useState, useEffect } from "react";
-// Autenticación simplificada - sin Supabase
 import { motion } from "framer-motion";
 import AuthCheck from "@/components/Auth/AuthCheck";
 import { HiPlus, HiPencil, HiTrash, HiCheck } from "react-icons/hi2";
+import {
+  getCollection,
+  addDocument,
+  updateDocument,
+  deleteDocument,
+} from "@/lib/firestore-helpers";
 
 interface Event {
   id?: string;
@@ -48,41 +53,94 @@ export default function AdminAgendaPage() {
 
   const loadCategories = async () => {
     try {
-      const { data, error } = await supabase
-        .from("events")
-        .select("category_name")
-        .not("category_name", "is", null);
+      const data = await getCollection("events");
 
-      if (error) throw error;
+      if (data && data.length > 0) {
+        // Extraer categorías únicas de los eventos
+        const uniqueCategories = Array.from(
+          new Set(
+            (data as Event[])
+              .map((event) => event.category_name)
+              .filter(Boolean)
+          )
+        );
 
-      // Usar Array.from en lugar de spread operator con Set
-      const uniqueCategories = Array.from(
-        new Set(data.map((event) => event.category_name))
-      );
-
-      setCategories(
-        uniqueCategories.map((name) => ({
-          id: name,
-          name: name,
-        }))
-      );
+        setCategories(
+          uniqueCategories.map((name) => ({
+            id: name,
+            name: name,
+          }))
+        );
+      }
     } catch (error) {
-      console.error("Error cargando categorías:", error);
+      console.error("❌ Error cargando categorías:", error);
     }
   };
 
   const loadEvents = async () => {
     try {
-      const { data, error } = await supabase
-        .from("events")
-        .select("*")
-        .order("date", { ascending: true });
+      const data = await getCollection("events");
 
-      if (error) throw error;
-      setEvents(data || []);
+      if (data) {
+        // Limpiar TODOS los Timestamps recursivamente
+        const cleanedData = data.map((event: any) => cleanTimestamps(event));
+
+        // Convertir fechas específicas a formato correcto
+        const processedEvents = cleanedData.map((event: any) => ({
+          ...event,
+          date: event.date?.includes("T")
+            ? event.date.split("T")[0]
+            : event.date,
+        }));
+
+        // Ordenar por fecha descendente (más recientes primero)
+        const sortedEvents = processedEvents.sort((a: any, b: any) => {
+          const dateA = new Date(a.date);
+          const dateB = new Date(b.date);
+          return dateB.getTime() - dateA.getTime();
+        });
+
+        setEvents(sortedEvents as Event[]);
+      }
     } catch (error) {
-      console.error("Error cargando eventos:", error);
+      console.error("❌ Error cargando eventos:", error);
     }
+  };
+
+  // Función para convertir fecha de manera segura
+  const formatDate = (date: any): string => {
+    if (!date) return "";
+    if (typeof date === "string") return date;
+    if (date.toDate && typeof date.toDate === "function") {
+      return date.toDate().toISOString().split("T")[0];
+    }
+    if (date instanceof Date) {
+      return date.toISOString().split("T")[0];
+    }
+    return String(date);
+  };
+
+  // Función para limpiar TODOS los Timestamps de un objeto
+  const cleanTimestamps = (obj: any): any => {
+    if (!obj) return obj;
+    if (typeof obj !== "object") return obj;
+
+    // Si es un Timestamp de Firestore, convertirlo
+    if (obj.toDate && typeof obj.toDate === "function") {
+      return obj.toDate().toISOString();
+    }
+
+    // Si es un array, limpiar cada elemento
+    if (Array.isArray(obj)) {
+      return obj.map(cleanTimestamps);
+    }
+
+    // Si es un objeto, limpiar cada propiedad
+    const cleaned: any = {};
+    for (const key in obj) {
+      cleaned[key] = cleanTimestamps(obj[key]);
+    }
+    return cleaned;
   };
 
   // Función para verificar si un evento ya pasó
@@ -104,7 +162,7 @@ export default function AdminAgendaPage() {
       link: "",
     });
     setIsEditing(true);
-    setHasUnsavedChanges(true);
+    setHasUnsavedChanges(false);
   };
 
   const handleSave = async () => {
@@ -112,28 +170,45 @@ export default function AdminAgendaPage() {
     setIsSaving(true);
 
     try {
-      const { id, created_at, ...eventData } = currentEvent; // Excluir id y created_at
+      const eventData = {
+        type: currentEvent.type,
+        date: currentEvent.date ? new Date(currentEvent.date) : null,
+        end_date: currentEvent.end_date,
+        location: currentEvent.location,
+        description: currentEvent.description,
+        short_description: currentEvent.short_description || null,
+        image_url: currentEvent.image_url || null,
+        organizer: currentEvent.organizer || null,
+        link: currentEvent.link || null,
+        category_name: currentEvent.category_name,
+        instructor: currentEvent.instructor || null,
+        speaker: currentEvent.speaker || null,
+      };
 
-      if (id) {
+      if (currentEvent.id) {
         // Actualizar evento existente
-        const { error } = await supabase
-          .from("events")
-          .update(eventData)
-          .eq("id", id);
-        if (error) throw error;
+        await updateDocument("events", currentEvent.id, eventData);
+        alert("Evento actualizado correctamente");
       } else {
         // Crear nuevo evento
-        const { error } = await // Firebase: getCollection("events").insert([eventData]);
-        if (error) throw error;
+        await addDocument("events", {
+          ...eventData,
+          created_at: new Date(),
+        });
+        alert("Evento creado correctamente");
       }
 
-      loadEvents();
+      // Resetear estado ANTES de recargar
       setIsEditing(false);
       setCurrentEvent(null);
       setHasUnsavedChanges(false);
+
+      // Recargar eventos
+      await loadEvents();
+      await loadCategories();
     } catch (error) {
-      console.error("Error guardando evento:", error);
-      alert("Error al guardar el evento");
+      console.error("❌ Error guardando evento:", error);
+      alert(`Error al guardar el evento: ${error}`);
     } finally {
       setIsSaving(false);
     }
@@ -143,12 +218,12 @@ export default function AdminAgendaPage() {
     if (!confirm("¿Estás seguro de que quieres eliminar este evento?")) return;
 
     try {
-      const { error } = await // Firebase: getCollection("events").delete().eq("id", id);
-
-      if (error) throw error;
-      loadEvents();
+      await deleteDocument("events", id);
+      alert("Evento eliminado correctamente");
+      await loadEvents();
+      await loadCategories();
     } catch (error) {
-      console.error("Error eliminando evento:", error);
+      console.error("❌ Error eliminando evento:", error);
       alert("Error al eliminar el evento");
     }
   };
@@ -157,7 +232,7 @@ export default function AdminAgendaPage() {
     try {
       if (!newCategory.name) return;
 
-      const categoryName = newCategory.name; // Asegurar que es string
+      const categoryName = newCategory.name;
 
       setCategories([...categories, { id: categoryName, name: categoryName }]);
 
@@ -167,10 +242,27 @@ export default function AdminAgendaPage() {
 
       setIsNewCategory(false);
       setNewCategory({ name: "" });
+      setHasUnsavedChanges(true);
     } catch (error) {
       console.error("Error creando categoría:", error);
       alert("Error al crear la categoría");
     }
+  };
+
+  const handleCancel = () => {
+    if (hasUnsavedChanges) {
+      if (
+        !confirm(
+          "Tienes cambios sin guardar. ¿Estás seguro de que quieres salir sin guardar?"
+        )
+      ) {
+        return;
+      }
+    }
+
+    setCurrentEvent(null);
+    setIsEditing(false);
+    setHasUnsavedChanges(false);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -178,29 +270,28 @@ export default function AdminAgendaPage() {
     if (!file || !currentEvent) return;
 
     try {
-      // Crear un nombre único para el archivo
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `events/${fileName}`;
+      const formData = new FormData();
+      formData.append("files", file);
+      formData.append("folder", "feriafotografia/events");
 
-      // Subir el archivo a Supabase Storage
-      const { error: uploadError, data } = await // Cloudinary: TODO implementar
-        .from("images")
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      // Obtener la URL pública
-      const {
-        data: { publicUrl },
-      } = // Cloudinary: TODO implementar.from("images").getPublicUrl(filePath);
-
-      // Actualizar el evento con la URL de la imagen
-      setCurrentEvent({
-        ...currentEvent,
-        image_url: publicUrl,
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
       });
-      setHasUnsavedChanges(true);
+
+      const uploadResult = await response.json();
+
+      if (uploadResult.success && uploadResult.urls && uploadResult.urls[0]) {
+        // Actualizar el evento con la URL de la imagen
+        setCurrentEvent({
+          ...currentEvent,
+          image_url: uploadResult.urls[0],
+        });
+        setHasUnsavedChanges(true);
+        alert("Imagen subida correctamente");
+      } else {
+        throw new Error(uploadResult.error || "Error desconocido");
+      }
     } catch (error) {
       console.error("Error subiendo imagen:", error);
       alert("Error al subir la imagen");
@@ -213,38 +304,64 @@ export default function AdminAgendaPage() {
         <div className="container mx-auto px-6 py-8">
           <div className="flex justify-between items-center mb-8 pt-8">
             <h1 className="text-3xl font-bevietnam font-bold text-bg-secondary">
-              Administrar Agenda
+              {isEditing
+                ? currentEvent?.id
+                  ? `Editar: ${currentEvent.type || "Evento"}`
+                  : "Nuevo Evento"
+                : "Administrar Agenda"}
             </h1>
-            <div className="flex gap-4">
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-accent-blue focus:outline-none"
-              >
-                <option value="">Todas las categorías</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-              <label className="flex items-center gap-2 px-4 py-2 border rounded-lg cursor-pointer hover:bg-gray-50">
-                <input
-                  type="checkbox"
-                  checked={showPastEvents}
-                  onChange={(e) => setShowPastEvents(e.target.checked)}
-                  className="rounded"
-                />
-                <span className="text-sm">Mostrar eventos pasados</span>
-              </label>
+            {isEditing ? (
               <button
-                onClick={handleCreate}
-                className="flex items-center gap-2 px-4 py-2 bg-accent-blue text-white rounded-lg hover:bg-opacity-90"
+                onClick={handleCancel}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
               >
-                <HiPlus className="w-5 h-5" />
-                Nuevo Evento
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                  />
+                </svg>
+                Volver a la Lista
               </button>
-            </div>
+            ) : (
+              <div className="flex gap-4">
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-accent-blue focus:outline-none"
+                >
+                  <option value="">Todas las categorías</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+                <label className="flex items-center gap-2 px-4 py-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                  <input
+                    type="checkbox"
+                    checked={showPastEvents}
+                    onChange={(e) => setShowPastEvents(e.target.checked)}
+                    className="rounded"
+                  />
+                  <span className="text-sm">Mostrar eventos pasados</span>
+                </label>
+                <button
+                  onClick={handleCreate}
+                  className="flex items-center gap-2 px-4 py-2 bg-accent-blue text-white rounded-lg hover:bg-opacity-90"
+                >
+                  <HiPlus className="w-5 h-5" />
+                  Nuevo Evento
+                </button>
+              </div>
+            )}
           </div>
 
           {isEditing && currentEvent ? (
@@ -540,7 +657,11 @@ export default function AdminAgendaPage() {
                       {currentEvent.type}
                     </h3>
                     <div className="flex gap-4 text-accent-blue mb-4">
-                      <p>{new Date(currentEvent.date).toLocaleDateString()}</p>
+                      <p>
+                        {new Date(
+                          formatDate(currentEvent.date)
+                        ).toLocaleDateString()}
+                      </p>
                       <p>{currentEvent.end_date}</p>
                       <p>{currentEvent.location}</p>
                     </div>
@@ -586,15 +707,28 @@ export default function AdminAgendaPage() {
 
               <div className="flex justify-end gap-2 mt-8">
                 <button
-                  onClick={() => setIsEditing(false)}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                  onClick={handleCancel}
+                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
                 >
-                  Cancelar
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                  Cancelar y Volver
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={isSaving || !hasUnsavedChanges}
-                  className={`flex items-center gap-2 px-6 py-2 rounded-lg ${
+                  className={`flex items-center gap-2 px-6 py-3 rounded-lg ${
                     hasUnsavedChanges
                       ? "bg-accent-green text-white hover:bg-opacity-90"
                       : "bg-gray-200 text-gray-500 cursor-not-allowed"
@@ -609,11 +743,11 @@ export default function AdminAgendaPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {events
                 .filter((event) => {
-                  const isPast = isEventPast(event.date);
+                  const isPast = isEventPast(formatDate(event.date));
                   return showPastEvents || !isPast;
                 })
                 .map((event) => {
-                  const isPast = isEventPast(event.date);
+                  const isPast = isEventPast(formatDate(event.date));
                   return (
                     <motion.div
                       key={event.id}
@@ -635,7 +769,11 @@ export default function AdminAgendaPage() {
                           )}
                         </div>
                         <div className="flex gap-4 text-accent-blue text-sm mb-4">
-                          <p>{new Date(event.date).toLocaleDateString()}</p>
+                          <p>
+                            {new Date(
+                              formatDate(event.date)
+                            ).toLocaleDateString()}
+                          </p>
                           <p>{event.end_date}</p>
                         </div>
                         <p className="text-sm text-gray-600 mb-2">
@@ -649,6 +787,7 @@ export default function AdminAgendaPage() {
                             onClick={() => {
                               setCurrentEvent(event);
                               setIsEditing(true);
+                              setHasUnsavedChanges(false);
                             }}
                             className="p-2 text-accent-blue hover:bg-accent-blue/10 rounded-lg transition-colors"
                           >

@@ -1,11 +1,19 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-// Autenticación simplificada - sin Supabase
 import { HiPlus, HiPencil, HiTrash, HiSave, HiUpload } from "react-icons/hi";
 import CustomQuillEditor from "@/components/Editor/CustomQuillEditor";
 import AuthCheck from "@/components/Auth/AuthCheck";
 import PinterestGrid from "@/components/ui/PinterestGrid";
+import {
+  getCollection,
+  getDocument,
+  getDocumentsWithFilter,
+  addDocument,
+  updateDocument,
+  deleteDocument,
+  removeDuplicateImages,
+} from "@/lib/firestore-helpers";
 
 interface Exposicion {
   id: string;
@@ -13,6 +21,17 @@ interface Exposicion {
   title: string;
   description: string;
 }
+
+// Función para generar un ID temporal para nuevas exposiciones
+const generateTempId = () => {
+  return `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+};
+
+const EMPTY_EXPOSICION: Exposicion = {
+  id: "",
+  title: "",
+  description: "",
+};
 
 export default function ExposicionesAdminPage() {
   const [exposiciones, setExposiciones] = useState<Exposicion[]>([]);
@@ -31,28 +50,45 @@ export default function ExposicionesAdminPage() {
     loadExposiciones();
   }, []);
 
+  // Memoizar las imágenes procesadas para evitar re-renders innecesarios
+  const processedImages = useMemo(() => {
+    return exposicionImages;
+  }, [exposicionImages]);
+
   const loadExposiciones = async () => {
     try {
-      const { data, error } = await supabase
-        .from("exhibitions")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
+      const data = await getCollection("exhibitions");
+      console.log("📊 EXPOSICIONES - Datos cargados:", data?.length || 0);
 
       if (data) {
-        setExposiciones(data);
+        // Ordenar por fecha de creación descendente
+        const sortedExposiciones = data.sort((a: any, b: any) => {
+          const dateA = a.created_at?.toDate
+            ? a.created_at.toDate()
+            : new Date(a.created_at || Date.now());
+          const dateB = b.created_at?.toDate
+            ? b.created_at.toDate()
+            : new Date(b.created_at || Date.now());
+          return dateB.getTime() - dateA.getTime();
+        });
+
+        setExposiciones(sortedExposiciones as Exposicion[]);
 
         // Cargar imágenes
-        const { data: imagesData, error: imagesError } = await supabase
-          .from("images")
-          .select("*")
-          .eq("section", "exhibitions");
+        const imagesData = await getDocumentsWithFilter(
+          "images",
+          "section",
+          "exhibitions"
+        );
 
-        if (imagesError) throw imagesError;
+        console.log(
+          "🖼️ EXPOSICIONES - Imágenes cargadas:",
+          imagesData?.length || 0
+        );
 
         if (imagesData) {
-          const imagesByExposition = imagesData.reduce((acc, img) => {
+          const uniqueImages = removeDuplicateImages(imagesData);
+          const imagesByExposition = uniqueImages.reduce((acc, img) => {
             if (!acc[img.section_id]) {
               acc[img.section_id] = [];
             }
@@ -62,25 +98,26 @@ export default function ExposicionesAdminPage() {
 
           setExposicionImages(imagesByExposition);
         }
+      } else {
+        console.log("⚠️ No hay exposiciones en Firebase");
+        setExposiciones([]);
       }
     } catch (error) {
-      console.error("Error:", error);
+      console.error("❌ Error cargando exposiciones:", error);
+      setExposiciones([]);
     }
   };
 
   const handleCreate = () => {
-    setCurrentExposicion({
-      id: "",
-      title: "Nueva Exposición",
-      description: "",
-    });
+    setCurrentExposicion(EMPTY_EXPOSICION);
     setIsEditing(true);
-    setHasUnsavedChanges(true);
+    setHasUnsavedChanges(false);
   };
 
   const handleEdit = (exposicion: Exposicion) => {
     setCurrentExposicion(exposicion);
     setIsEditing(true);
+    setHasUnsavedChanges(false);
   };
 
   const handleImageUpload = async (files: FileList) => {
@@ -89,38 +126,47 @@ export default function ExposicionesAdminPage() {
       return;
     }
 
+    // Si es una exposición nueva sin ID, generar un ID temporal
+    let exposicionId = currentExposicion.id;
+    if (!exposicionId || exposicionId === "") {
+      exposicionId = generateTempId();
+      setCurrentExposicion({ ...currentExposicion, id: exposicionId });
+    }
+
     setIsUploadingImages(true);
     try {
-      const uploadPromises = Array.from(files).map(async (file) => {
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
-        const filePath = `exhibitions/${fileName}`;
+      const formData = new FormData();
+      Array.from(files).forEach((file) => {
+        formData.append("files", file);
+      });
+      formData.append("folder", "feriafotografia/exhibitions");
 
-        const { error: uploadError } = await // Cloudinary: TODO implementar
-          .from("images")
-          .upload(filePath, file);
-
-        if (uploadError) throw uploadError;
-
-        const {
-          data: { publicUrl },
-        } = // Cloudinary: TODO implementar.from("images").getPublicUrl(filePath);
-
-        return publicUrl;
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
       });
 
-      const newImageUrls = await Promise.all(uploadPromises);
-      setExposicionImages((prev) => ({
-        ...prev,
-        [currentExposicion.id]: [
-          ...(prev[currentExposicion.id] || []),
-          ...newImageUrls,
-        ],
-      }));
-      setHasUnsavedChanges(true);
+      const data = await response.json();
+
+      if (data.success && data.urls) {
+        const newImages = [
+          ...(exposicionImages[exposicionId] || []),
+          ...data.urls,
+        ];
+        setExposicionImages({
+          ...exposicionImages,
+          [exposicionId]: newImages,
+        });
+        setHasUnsavedChanges(true);
+        alert(
+          `${data.urls.length} imagen(es) subida(s) correctamente. Recuerda guardar los cambios.`
+        );
+      } else {
+        throw new Error(data.error || "Error desconocido");
+      }
     } catch (error) {
-      console.error("Error subiendo imágenes:", error);
-      alert("Error al subir las imágenes");
+      console.error("❌ Error subiendo imágenes:", error);
+      alert(`Error al subir las imágenes: ${error}`);
     } finally {
       setIsUploadingImages(false);
     }
@@ -130,23 +176,13 @@ export default function ExposicionesAdminPage() {
     if (!currentExposicion) return;
 
     try {
-      // Extraer el nombre del archivo de la URL
-      const fileName = imageUrl.split("/").pop();
-      if (fileName) {
-        const { error: storageError } = await // Cloudinary: TODO implementar
-          .from("images")
-          .remove([`exhibitions/${fileName}`]);
-
-        if (storageError) throw storageError;
-      }
+      // Buscar la imagen en Firebase
+      const images = await getDocumentsWithFilter("images", "url", imageUrl);
 
       // Eliminar de la base de datos
-      const { error: dbError } = await supabase
-        .from("images")
-        .delete()
-        .eq("url", imageUrl);
-
-      if (dbError) throw dbError;
+      for (const img of images) {
+        await deleteDocument("images", img.id);
+      }
 
       // Actualizar estado local
       setExposicionImages((prev) => ({
@@ -157,72 +193,92 @@ export default function ExposicionesAdminPage() {
       }));
       setHasUnsavedChanges(true);
     } catch (error) {
-      console.error("Error eliminando imagen:", error);
+      console.error("❌ Error eliminando imagen:", error);
       alert("Error al eliminar la imagen");
     }
   };
 
   const handleSave = async () => {
     if (!currentExposicion) return;
+
     setIsSaving(true);
     try {
       let exposicionId = currentExposicion.id;
-      if (!exposicionId) {
-        // Crear nueva exposición
-        const { data: newExposicion, error: createError } = await supabase
-          .from("exhibitions")
-          .insert({
-            title: currentExposicion.title,
-            description: currentExposicion.description,
-          })
-          .select()
-          .single();
-        if (createError) throw createError;
-        exposicionId = newExposicion.id;
+      const exposicionData = {
+        title: currentExposicion.title,
+        description: currentExposicion.description,
+      };
+
+      // Determinar si es una exposición nueva o existente
+      const isNewExposicion =
+        !exposicionId ||
+        exposicionId === "" ||
+        exposicionId.startsWith("temp-");
+
+      if (isNewExposicion) {
+        // CREAR NUEVA EXPOSICIÓN
+        exposicionId = await addDocument("exhibitions", {
+          ...exposicionData,
+          created_at: new Date(),
+        });
+
+        setCurrentExposicion({ ...currentExposicion, id: exposicionId });
       } else {
-        // Actualizar exposición existente
-        const { error: updateError } = await supabase
-          .from("exhibitions")
-          .update({
-            title: currentExposicion.title,
-            description: currentExposicion.description,
-          })
-          .eq("id", exposicionId);
-        if (updateError) throw updateError;
+        // ACTUALIZAR EXPOSICIÓN EXISTENTE
+        await updateDocument("exhibitions", exposicionId, exposicionData);
       }
 
       // Guardar imágenes en la base de datos
       if (exposicionId) {
-        const currentImages = exposicionImages[currentExposicion.id] || [];
-        for (const imageUrl of currentImages) {
-          // Verificar si la imagen ya existe en la base de datos
-          const { data: existingImage } = await supabase
-            .from("images")
-            .select("id")
-            .eq("url", imageUrl)
-            .single();
+        const currentImages =
+          exposicionImages[currentExposicion.id] ||
+          exposicionImages[exposicionId] ||
+          [];
 
-          if (!existingImage) {
-            // Si no existe, insertarla
-            const { error: imageError } = await // Firebase: getCollection("images").insert({
+        // Obtener las imágenes actuales en la base de datos para esta exposición
+        const existingImagesInDb = await getDocumentsWithFilter(
+          "images",
+          "section_id",
+          exposicionId
+        );
+
+        // Crear un set de URLs actuales en el estado local
+        const currentImageUrls = new Set(currentImages);
+
+        // Eliminar imágenes que ya no están en el estado local
+        for (const dbImage of existingImagesInDb) {
+          const imageUrl = (dbImage as any).url;
+          if (!currentImageUrls.has(imageUrl)) {
+            await deleteDocument("images", dbImage.id);
+          }
+        }
+
+        // Crear un set de URLs existentes en la BD
+        const existingImageUrls = new Set(
+          existingImagesInDb.map((img: any) => img.url)
+        );
+
+        // Agregar imágenes nuevas que no están en la BD
+        for (const imageUrl of currentImages) {
+          if (!existingImageUrls.has(imageUrl)) {
+            await addDocument("images", {
               url: imageUrl,
               alt: `Imagen de ${currentExposicion.title}`,
               section: "exhibitions",
               section_id: exposicionId,
             });
-            if (imageError) throw imageError;
           }
         }
       }
 
       setHasUnsavedChanges(false);
       alert("Cambios guardados correctamente");
-      loadExposiciones();
+      await loadExposiciones();
       setCurrentExposicion(null);
       setIsEditing(false);
     } catch (error) {
-      console.error("Error al guardar:", error);
-      alert("Error al guardar los cambios");
+      console.error("❌ Error al guardar:", error);
+      alert(`Error al guardar los cambios: ${error}`);
     } finally {
       setIsSaving(false);
     }
@@ -233,52 +289,41 @@ export default function ExposicionesAdminPage() {
 
     try {
       // Eliminar imágenes asociadas
-      const { data: imagesData, error: imagesError } = await supabase
-        .from("images")
-        .select("*")
-        .eq("section_id", id);
-
-      if (imagesError) throw imagesError;
-
-      // Eliminar archivos del storage
-      if (imagesData) {
-        for (const img of imagesData) {
-          const fileName = img.url.split("/").pop();
-          if (fileName) {
-            await // Cloudinary: TODO implementar
-              .from("images")
-              .remove([`exhibitions/${fileName}`]);
-          }
-        }
-      }
+      const imagesData = await getDocumentsWithFilter(
+        "images",
+        "section_id",
+        id
+      );
 
       // Eliminar registros de imágenes de la base de datos
-      const { error: deleteImagesError } = await supabase
-        .from("images")
-        .delete()
-        .eq("section_id", id);
-
-      if (deleteImagesError) throw deleteImagesError;
+      for (const img of imagesData) {
+        await deleteDocument("images", img.id);
+      }
 
       // Eliminar la exposición
-      const { error: deleteError } = await supabase
-        .from("exhibitions")
-        .delete()
-        .eq("id", id);
-
-      if (deleteError) throw deleteError;
+      await deleteDocument("exhibitions", id);
 
       alert("Exposición eliminada correctamente");
-      loadExposiciones();
+      await loadExposiciones();
       setCurrentExposicion(null);
       setIsEditing(false);
     } catch (error) {
-      console.error("Error al eliminar:", error);
+      console.error("❌ Error al eliminar:", error);
       alert("Error al eliminar la exposición");
     }
   };
 
   const handleCancel = () => {
+    if (hasUnsavedChanges) {
+      if (
+        !confirm(
+          "Tienes cambios sin guardar. ¿Estás seguro de que quieres salir sin guardar?"
+        )
+      ) {
+        return;
+      }
+    }
+
     setCurrentExposicion(null);
     setIsEditing(false);
     setHasUnsavedChanges(false);
@@ -290,15 +335,41 @@ export default function ExposicionesAdminPage() {
         <div className="container mx-auto px-6 py-8 pt-20">
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold text-bg-secondary font-bevietnam">
-              Administrar Exposiciones
+              {isEditing
+                ? currentExposicion?.id
+                  ? `Editar: ${currentExposicion.title || "Exposición"}`
+                  : "Nueva Exposición"
+                : "Administrar Exposiciones"}
             </h1>
-            <button
-              onClick={handleCreate}
-              className="flex items-center gap-2 px-4 py-2 bg-accent-blue text-white rounded-lg hover:bg-accent-blue/90 transition-colors"
-            >
-              <HiPlus className="w-5 h-5" />
-              Nueva Exposición
-            </button>
+            {isEditing ? (
+              <button
+                onClick={handleCancel}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                  />
+                </svg>
+                Volver a la Lista
+              </button>
+            ) : (
+              <button
+                onClick={handleCreate}
+                className="flex items-center gap-2 px-4 py-2 bg-accent-blue text-white rounded-lg hover:bg-accent-blue/90 transition-colors"
+              >
+                <HiPlus className="w-5 h-5" />
+                Nueva Exposición
+              </button>
+            )}
           </div>
 
           {isEditing && currentExposicion ? (
@@ -388,10 +459,10 @@ export default function ExposicionesAdminPage() {
                     </div>
 
                     {/* Grid de imágenes estilo Pinterest */}
-                    {exposicionImages[currentExposicion.id]?.length > 0 && (
+                    {processedImages[currentExposicion.id]?.length > 0 && (
                       <div className="relative">
                         <PinterestGrid
-                          images={exposicionImages[currentExposicion.id].map(
+                          images={processedImages[currentExposicion.id].map(
                             (url, index) => ({
                               id: `exposicion-${index}`,
                               url,
@@ -400,24 +471,10 @@ export default function ExposicionesAdminPage() {
                               }`,
                             })
                           )}
+                          onDeleteImage={handleImageDelete}
+                          showDeleteButtons={true}
                           className="mb-4"
                         />
-
-                        {/* Botones de eliminar flotantes */}
-                        <div className="absolute top-2 right-2 flex gap-2">
-                          {exposicionImages[currentExposicion.id].map(
-                            (imageUrl, index) => (
-                              <button
-                                key={index}
-                                onClick={() => handleImageDelete(imageUrl)}
-                                className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
-                                title="Eliminar imagen"
-                              >
-                                <HiTrash className="w-4 h-4" />
-                              </button>
-                            )
-                          )}
-                        </div>
                       </div>
                     )}
 
@@ -433,9 +490,22 @@ export default function ExposicionesAdminPage() {
                       </button>
                       <button
                         onClick={handleCancel}
-                        className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                        className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
                       >
-                        Cancelar
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                        Cancelar y Volver
                       </button>
                     </div>
                   </div>
@@ -490,14 +560,14 @@ export default function ExposicionesAdminPage() {
                   </div>
 
                   {/* Imágenes */}
-                  {exposicionImages[currentExposicion.id]?.length > 0 && (
+                  {processedImages[currentExposicion.id]?.length > 0 && (
                     <div>
                       <h3 className="text-lg font-bold text-bg-secondary font-bevietnam mb-4">
-                        Imágenes (
-                        {exposicionImages[currentExposicion.id].length})
+                        Imágenes ({processedImages[currentExposicion.id].length}
+                        )
                       </h3>
                       <PinterestGrid
-                        images={exposicionImages[currentExposicion.id].map(
+                        images={processedImages[currentExposicion.id].map(
                           (url, index) => ({
                             id: `preview-exposicion-${index}`,
                             url,
@@ -514,38 +584,49 @@ export default function ExposicionesAdminPage() {
             </>
           ) : (
             <div className="grid gap-6">
-              {exposiciones.map((exposicion) => (
-                <motion.div
-                  key={exposicion.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-white rounded-lg shadow-md p-6"
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold text-bg-secondary font-bevietnam">
-                        {exposicion.title}
-                      </h3>
+              {exposiciones.length === 0 ? (
+                <div className="text-center py-12 bg-white rounded-lg">
+                  <p className="text-gray-500 mb-4">
+                    No hay exposiciones todavía.
+                  </p>
+                  <p className="text-gray-400 text-sm">
+                    Haz clic en "Nueva Exposición" para crear una.
+                  </p>
+                </div>
+              ) : (
+                exposiciones.map((exposicion) => (
+                  <motion.div
+                    key={exposicion.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white rounded-lg shadow-md p-6"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-bg-secondary font-bevietnam">
+                          {exposicion.title}
+                        </h3>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEdit(exposicion)}
+                          className="p-2 text-accent-blue hover:bg-accent-blue/10 rounded-lg transition-colors"
+                          title="Editar"
+                        >
+                          <HiPencil className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(exposicion.id)}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Eliminar"
+                        >
+                          <HiTrash className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEdit(exposicion)}
-                        className="p-2 text-accent-blue hover:bg-accent-blue/10 rounded-lg transition-colors"
-                        title="Editar"
-                      >
-                        <HiPencil className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(exposicion.id)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Eliminar"
-                      >
-                        <HiTrash className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                ))
+              )}
             </div>
           )}
         </div>
