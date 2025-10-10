@@ -66,26 +66,26 @@ export const getAnalyticsStats = async (): Promise<AnalyticsStats> => {
     const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
 
     const dailyViews = allViews.filter(
-      (view) => new Date(view.timestamp) >= today
+      (view: any) => new Date(view.timestamp) >= today
     ).length;
 
     const weeklyViews = allViews.filter(
-      (view) => new Date(view.timestamp) >= weekAgo
+      (view: any) => new Date(view.timestamp) >= weekAgo
     ).length;
 
     const monthlyViews = allViews.filter(
-      (view) => new Date(view.timestamp) >= monthAgo
+      (view: any) => new Date(view.timestamp) >= monthAgo
     ).length;
 
     // Contar vistas por página
     const pageViews: Record<string, number> = {};
-    allViews.forEach((view) => {
+    allViews.forEach((view: any) => {
       pageViews[view.page] = (pageViews[view.page] || 0) + 1;
     });
 
     // Contar visitantes únicos (por session_id)
     const uniqueSessions = new Set(
-      allViews.filter((view) => view.session_id).map((view) => view.session_id)
+      allViews.filter((view: any) => view.session_id).map((view: any) => view.session_id)
     );
 
     return {

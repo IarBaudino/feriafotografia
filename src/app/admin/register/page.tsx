@@ -28,18 +28,15 @@ export default function RegisterPage() {
     // Verificar si ya hay una sesión activa en Firebase
     const checkSession = async () => {
       try {
-        const { getCurrentUser } = await import("@/lib/firebase-auth");
-        const currentUser = getCurrentUser();
-
-        if (currentUser) {
-          // Si hay un usuario logueado, verificar si está autorizado
-          if (isEmailAuthorized(currentUser.email || "")) {
+        const { onAuthChange } = await import("@/lib/firebase-auth");
+        onAuthChange((user) => {
+          if (user && isEmailAuthorized(user.email || "")) {
             setHasUsers(true);
             setError(
               "Ya existe una cuenta de administrador activa. No se pueden crear más cuentas."
             );
           }
-        }
+        });
       } catch (error) {
         console.error("Error verificando sesión:", error);
       }
@@ -79,25 +76,14 @@ export default function RegisterPage() {
     try {
       console.log("Intentando crear cuenta con:", email);
 
-      // TODO: Implementar registro en Firebase
-      console.log("Registrando usuario:", email);
-      const data = null;
-      const error = null;
+      // Registrar usuario con Firebase
+      const { createUserWithEmailAndPassword } = await import("firebase/auth");
+      const { auth } = await import("@/lib/firebase-auth");
+      
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
-      console.log("Respuesta de registro:", { data, error });
-
-      if (error) throw error;
-
-      if (data.user && !data.session) {
-        setSuccess(
-          "Cuenta creada exitosamente. Por favor, verifica tu email para confirmar la cuenta."
-        );
-        // Limpiar formulario
-        setEmail("");
-        setPassword("");
-        setConfirmPassword("");
-      } else if (data.session) {
-        setSuccess("Cuenta creada y sesión iniciada exitosamente.");
+      if (userCredential.user) {
+        setSuccess("Cuenta creada exitosamente. Redirigiendo al dashboard...");
         setTimeout(() => {
           router.replace("/admin/dashboard");
         }, 2000);
