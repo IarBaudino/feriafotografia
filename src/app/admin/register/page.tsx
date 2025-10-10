@@ -25,27 +25,18 @@ export default function RegisterPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Verificar si ya hay una sesión activa
+    // Verificar si ya hay una sesión activa en Firebase
     const checkSession = async () => {
       try {
-        // TODO: Implementar verificación de sesión en Firebase
-        console.log("Verificando sesión de usuario");
-        const session = null;
+        const { getCurrentUser } = await import("@/lib/firebase-auth");
+        const currentUser = getCurrentUser();
 
-        if (session) {
-          // Si hay una sesión activa, verificar si el usuario está autorizado
-          const currentUser = session.user;
+        if (currentUser) {
+          // Si hay un usuario logueado, verificar si está autorizado
           if (isEmailAuthorized(currentUser.email || "")) {
-            // Si el usuario actual está autorizado, mostrar mensaje
             setHasUsers(true);
             setError(
               "Ya existe una cuenta de administrador activa. No se pueden crear más cuentas."
-            );
-          } else {
-            // Si el usuario no está autorizado, cerrar sesión automáticamente
-            // Cerrar sesión simplificado();
-            setError(
-              "Sesión no autorizada cerrada. Puedes crear una cuenta autorizada."
             );
           }
         }
