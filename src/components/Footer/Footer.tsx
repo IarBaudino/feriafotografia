@@ -43,9 +43,21 @@ export default function Footer() {
         {/* Línea divisoria */}
         <div className="border-t border-bg-primary/20 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm font-bevietnam font-normal text-bg-primary/80">
-              © {currentYear} Feria Fotografía. Todos los derechos reservados.
-            </p>
+            <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4 text-center md:text-left">
+              <p className="text-sm font-bevietnam font-normal text-bg-primary/80">
+                © {currentYear} Feria Fotografía. Todos los derechos reservados.
+              </p>
+              <span className="hidden md:inline text-bg-primary/40">|</span>
+              <a
+                href="https://www.iarabaudinodev.com.ar/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-bevietnam font-normal text-bg-primary/70 hover:text-accent-blue transition-colors flex items-center gap-1"
+              >
+                Diseño y desarrollo por{" "}
+                <span className="font-bold">Iara Baudino</span>
+              </a>
+            </div>
             <div className="flex gap-4">
               <Link
                 href="/admin/login"
