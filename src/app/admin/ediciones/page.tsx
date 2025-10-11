@@ -652,14 +652,27 @@ export default function EdicionesAdminPage() {
   return (
     <AuthCheck>
       <div className="min-h-screen bg-bg-primary">
-        <div className="container mx-auto px-6 py-8 pt-20">
+        <div className="container mx-auto px-4 md:px-6 py-8">
           <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold text-bg-secondary font-bevietnam">
-              {isEditing
-                ? currentEdicion?.id
-                  ? `Editar: ${currentEdicion.title || "Edición"}`
-                  : "Nueva Edición"
-                : "Administrar Ediciones"}
+            <h1 className="text-2xl md:text-3xl font-bold text-bg-secondary font-bevietnam">
+              {isEditing ? (
+                currentEdicion?.id ? (
+                  <>
+                    <span className="hidden md:inline">Editar: </span>
+                    <span className="md:hidden">Editar </span>
+                    {currentEdicion.title || "Edición"}
+                  </>
+                ) : (
+                  "Nueva Edición"
+                )
+              ) : (
+                <>
+                  <span className="hidden md:inline">
+                    Administrar Ediciones
+                  </span>
+                  <span className="md:hidden">Ediciones</span>
+                </>
+              )}
             </h1>
             {isEditing ? (
               <button

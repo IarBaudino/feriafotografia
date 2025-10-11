@@ -7,11 +7,17 @@ interface MobileMenuProps {
   isOpen: boolean;
   onClose: () => void;
   homeMenuItems: string[];
-  pageLinks: { name: string; path: string; }[];
+  pageLinks: { name: string; path: string }[];
   currentPath: string;
 }
 
-export default function MobileMenu({ isOpen, onClose, homeMenuItems, pageLinks, currentPath }: MobileMenuProps) {
+export default function MobileMenu({
+  isOpen,
+  onClose,
+  homeMenuItems,
+  pageLinks,
+  currentPath,
+}: MobileMenuProps) {
   if (!isOpen) return null;
 
   return (
@@ -21,37 +27,35 @@ export default function MobileMenu({ isOpen, onClose, homeMenuItems, pageLinks, 
       exit={{ opacity: 0 }}
       className="fixed inset-0 bg-bg-primary z-40"
     >
-      <div className="container-width h-full px-4 pt-20 pb-6">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-text-primary"
-        >
-          <HiX size={24} />
-        </button>
+      <div className="h-full px-6 pb-6 max-w-md">
+        {/* Header con botón de cerrar */}
+        <div className="flex items-center justify-between pt-6 pb-8 border-b border-bg-secondary/10">
+          <h2 className="text-2xl font-bevietnam font-bold text-bg-secondary">
+            Menú
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-2 text-text-primary hover:bg-bg-secondary/10 rounded-lg transition-colors"
+            aria-label="Cerrar menú"
+          >
+            <HiX size={28} />
+          </button>
+        </div>
 
-        <nav className="h-full flex flex-col">
-          <div className="space-y-4">
-            {currentPath === '/' && (
-              <>
-                <h3 className="text-sm font-bevietnam font-bold text-text-primary/60 uppercase">
-                  Inicio
-                </h3>
-                {homeMenuItems.map((item) => (
-                  <Link
-                    key={item}
-                    href={`#${item}`}
-                    onClick={onClose}
-                    className="block py-2 text-lg font-bevietnam font-normal text-text-primary hover:text-bg-secondary transition-colors"
-                  >
-                    {item.charAt(0).toUpperCase() + item.slice(1)}
-                  </Link>
-                ))}
-              </>
-            )}
+        <nav className="h-full flex flex-col pt-8">
+          <div className="space-y-6">
+            {currentPath === "/" &&
+              homeMenuItems.map((item) => (
+                <Link
+                  key={item}
+                  href={`#${item}`}
+                  onClick={onClose}
+                  className="block py-2 text-lg font-bevietnam font-normal text-text-primary hover:text-bg-secondary transition-colors"
+                >
+                  {item.charAt(0).toUpperCase() + item.slice(1)}
+                </Link>
+              ))}
 
-            <h3 className="text-sm font-bevietnam font-bold text-text-primary/60 uppercase mt-6">
-              Páginas
-            </h3>
             {pageLinks.map((link) => (
               <Link
                 key={link.path}

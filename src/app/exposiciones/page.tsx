@@ -155,7 +155,7 @@ export default function ExposicionesPage() {
         title="Exposiciones"
       />
 
-      <main className="md:pl-64 pt-28">
+      <main className="md:pl-72 pt-28">
         {/* Si no hay exposición seleccionada, mostrar solo la lista de títulos */}
         {currentExposicion === "" ? (
           <div className="container mx-auto px-6 py-12">

@@ -140,7 +140,7 @@ export default function CulturalAgendaPage() {
         title="Agenda Cultural"
       />
 
-      <main className="md:pl-64 pt-20">
+      <main className="md:pl-72 pt-20">
         <div className="container mx-auto px-6 py-8">
           <motion.div
             key={currentCategory}

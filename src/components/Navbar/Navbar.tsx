@@ -43,7 +43,11 @@ export default function Navbar() {
         transition={{ duration: 0.5 }}
       >
         <nav className="container-width flex items-center justify-between px-4 py-4">
-          <Link href="/" className="relative w-24 h-12">
+          <Link
+            href="/"
+            className="relative w-20 h-10 md:w-24 md:h-12 z-50"
+            aria-label="Ir a inicio"
+          >
             <Image
               src="/imagenes/stickerNavbar.png"
               alt="Feria Fotografía Logo"
@@ -97,8 +101,30 @@ export default function Navbar() {
                 : "text-bg-primary"
             }`}
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label="Menú"
           >
-            {/* Aquí puedes agregar tu ícono de menú */}
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              {isMobileMenuOpen ? (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              ) : (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              )}
+            </svg>
           </button>
         </nav>
       </motion.header>

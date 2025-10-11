@@ -164,7 +164,7 @@ export default function EdicionesPage() {
         title="Ediciones"
       />
 
-      <main className="md:pl-64 pt-20">
+      <main className="md:pl-72 pt-20">
         {selectedEdicion ? (
           <div className="container mx-auto px-6 py-12">
             <motion.div
