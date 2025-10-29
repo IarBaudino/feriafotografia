@@ -79,7 +79,7 @@ export default function Team() {
   };
 
   return (
-    <section id="equipo" className="section-padding bg-bg-primary">
+    <section id="staff" className="section-padding bg-bg-primary">
       <div className="container-width">
         <motion.div
           className="text-center mb-12"

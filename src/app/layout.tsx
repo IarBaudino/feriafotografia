@@ -20,12 +20,16 @@ const jolyDisplay = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Feria Fotografía",
+  title: "Feria de Fotografía",
   description:
     "Feria de fotografía - Un espacio de encuentro para amantes de la fotografía",
   icons: {
-    icon: "/imagenes/stickerNavbar.png",
-    apple: "/imagenes/stickerNavbar.png",
+    icon: [
+      { url: "/icon.png", type: "image/png" },
+      { url: "/imagenes/iso.ff.color.png", type: "image/png", sizes: "any" },
+    ],
+    apple: "/imagenes/iso.ff.color.png",
+    shortcut: "/icon.png",
   },
 };
 

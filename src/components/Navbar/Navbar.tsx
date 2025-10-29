@@ -13,7 +13,7 @@ export default function Navbar() {
   const isHomePage = pathname === "/";
 
   // Menú principal (home)
-  const homeMenuItems = ["la feria", "convocatorias", "equipo", "contacto"];
+  const homeMenuItems = ["el proyecto", "convocatorias", "staff", "contacto"];
 
   // Enlaces a páginas separadas
   const pageLinks = [

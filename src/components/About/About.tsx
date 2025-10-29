@@ -134,7 +134,7 @@ export default function About() {
   };
 
   return (
-    <section id="la feria" className="section-padding bg-bg-primary">
+    <section id="el proyecto" className="section-padding bg-bg-primary">
       <div className="container-width">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-6xl mx-auto">
           <motion.div

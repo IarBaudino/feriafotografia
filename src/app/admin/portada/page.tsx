@@ -124,20 +124,52 @@ export default function PortadaPage() {
       "video/webm",
       "video/ogg",
       "video/quicktime",
+      "video/x-msvideo", // .avi
     ];
     if (!validTypes.includes(file.type)) {
-      alert("Por favor, sube un archivo de video válido (MP4, WebM, OGG, MOV)");
+      alert(
+        "Por favor, sube un archivo de video válido (MP4, WebM, OGG, MOV, AVI)"
+      );
       return;
     }
 
     // Validar tamaño (máximo 100MB)
-    if (file.size > 100 * 1024 * 1024) {
+    const maxSize = 100 * 1024 * 1024; // 100MB
+    if (file.size > maxSize) {
       alert("El video no puede ser mayor a 100MB");
       return;
     }
 
-    // TODO: Implementar subida de video a Cloudinary
-    alert("La subida de videos está pendiente de implementar. Por ahora, usa un link de YouTube o Vimeo.");
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("files", file);
+      formData.append("folder", "feriafotografia/hero/videos");
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.urls && data.urls[0]) {
+        setSettings({
+          ...settings,
+          hero_video_url: data.urls[0],
+          hero_video_type: "upload",
+        });
+        setHasUnsavedChanges(true);
+        alert("Video subido correctamente. Recuerda guardar los cambios.");
+      } else {
+        throw new Error(data.error || "Error desconocido");
+      }
+    } catch (error) {
+      console.error("❌ Error subiendo video:", error);
+      alert(`Error al subir el video: ${error}`);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleSave = async () => {
