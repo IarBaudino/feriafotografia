@@ -395,14 +395,14 @@ export default function EdicionesAdminPage() {
     return match && match[2].length === 11 ? match[2] : null;
   };
 
-  // Función para extraer ID de Vimeo
+  
   const extractVimeoId = (url: string): string | null => {
     const regExp = /vimeo\.com\/([0-9]+)/;
     const match = url.match(regExp);
     return match ? match[1] : null;
   };
 
-  // Función para validar URL de video
+  
   const validateVideoUrl = (
     url: string
   ): { isValid: boolean; type: "youtube" | "vimeo" | undefined } => {
@@ -415,14 +415,14 @@ export default function EdicionesAdminPage() {
     return { isValid: false, type: undefined };
   };
 
-  // Función para subir video
+  
   const handleVideoUpload = async (file: File) => {
     if (!currentEdicion) {
       alert("Por favor, selecciona una edición para subir el video");
       return;
     }
 
-    // TODO: Implementar subida de video a Cloudinary
+    
     alert(
       "Funcionalidad de subida de video pendiente de implementar con Cloudinary"
     );

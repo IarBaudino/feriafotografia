@@ -23,6 +23,10 @@ export const metadata: Metadata = {
   title: "Feria Fotografía",
   description:
     "Feria de fotografía - Un espacio de encuentro para amantes de la fotografía",
+  icons: {
+    icon: "/imagenes/stickerNavbar.png",
+    apple: "/imagenes/stickerNavbar.png",
+  },
 };
 
 export default function RootLayout({

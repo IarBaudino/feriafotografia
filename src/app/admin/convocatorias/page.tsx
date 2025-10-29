@@ -46,7 +46,26 @@ export default function CallsPage() {
       const data = await getCollection("calls");
 
       if (data && data.length > 0) {
-        const callData = data[0] as any;
+        // Ordenar por fecha de creación/actualización y obtener el más reciente
+        const sortedCalls = data.sort((a: any, b: any) => {
+          const dateA = a.created_at?.toDate
+            ? a.created_at.toDate()
+            : a.updated_at?.toDate
+            ? a.updated_at.toDate()
+            : new Date(a.created_at || 0);
+          const dateB = b.created_at?.toDate
+            ? b.created_at.toDate()
+            : b.updated_at?.toDate
+            ? b.updated_at.toDate()
+            : new Date(b.created_at || 0);
+          return dateB.getTime() - dateA.getTime();
+        });
+
+        // Buscar primero una convocatoria activa, si no hay ninguna, tomar la más reciente
+        const callData =
+          sortedCalls.find((call: any) => Boolean(call.is_active)) ||
+          sortedCalls[0];
+
         setContent({
           id: callData.id,
           is_active: callData.is_active || false,

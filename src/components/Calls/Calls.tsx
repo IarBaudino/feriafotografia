@@ -32,20 +32,40 @@ export default function Calls() {
       console.log("Datos recibidos:", data);
 
       if (data && data.length > 0) {
-        // Obtener el más reciente (Firebase no tiene orderBy por defecto)
-        const latestCall = data.sort((a, b) => {
+        // Ordenar por fecha de creación y obtener el más reciente
+        const sortedCalls = data.sort((a, b) => {
           const dateA = a.created_at?.toDate
             ? a.created_at.toDate()
-            : new Date(a.created_at);
+            : a.updated_at?.toDate
+            ? a.updated_at.toDate()
+            : new Date(a.created_at || 0);
           const dateB = b.created_at?.toDate
             ? b.created_at.toDate()
-            : new Date(b.created_at);
+            : b.updated_at?.toDate
+            ? b.updated_at.toDate()
+            : new Date(b.created_at || 0);
           return dateB.getTime() - dateA.getTime();
-        })[0];
+        });
 
+        // Buscar primero una convocatoria activa, si no hay ninguna, tomar la más reciente
+        const latestCall =
+          sortedCalls.find((call) => Boolean(call.is_active)) || sortedCalls[0];
+
+        // Convertir Timestamps a strings ISO para las fechas
         const processedData = {
-          ...latestCall,
+          id: latestCall.id,
           is_active: Boolean(latestCall.is_active),
+          deadline: latestCall.deadline?.toDate
+            ? latestCall.deadline.toDate().toISOString().split("T")[0]
+            : latestCall.deadline || "",
+          feria_date: latestCall.feria_date?.toDate
+            ? latestCall.feria_date.toDate().toISOString().split("T")[0]
+            : latestCall.feria_date || "",
+          location: latestCall.location || "",
+          form_link: latestCall.form_link || "",
+          title: latestCall.title || "Convocatoria Abierta",
+          description: latestCall.description || "",
+          horario: latestCall.horario || "",
         };
         console.log("Datos procesados:", processedData);
         setCallData(processedData);
