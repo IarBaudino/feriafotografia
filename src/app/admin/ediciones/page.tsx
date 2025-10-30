@@ -169,7 +169,7 @@ function PreviewModal({ edicion, isOpen, onClose }: PreviewModalProps) {
 
 // Función para generar un ID temporal para nuevas ediciones
 const generateTempId = () => {
-  return `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return `temp-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 };
 
 const EMPTY_EDICION: Edicion = {

@@ -24,7 +24,7 @@ interface Exposicion {
 
 // Función para generar un ID temporal para nuevas exposiciones
 const generateTempId = () => {
-  return `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return `temp-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 };
 
 const EMPTY_EXPOSICION: Exposicion = {
