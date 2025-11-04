@@ -9,7 +9,6 @@ import {
   deleteDocument,
   removeDuplicateImages,
 } from "@/lib/firestore-helpers";
-import dynamic from "next/dynamic";
 import { HiSave, HiTrash, HiUpload } from "react-icons/hi";
 import { motion } from "framer-motion";
 import CustomQuillEditor from "@/components/Editor/CustomQuillEditor";
