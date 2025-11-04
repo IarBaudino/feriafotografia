@@ -28,8 +28,21 @@ export async function getCollection(collectionName: string) {
       };
     });
     return result;
-  } catch (error) {
-    console.error(`Error getting collection ${collectionName}:`, error);
+  } catch (error: any) {
+    console.error(`❌ Error getting collection ${collectionName}:`, error);
+    console.error("Detalles del error:", {
+      message: error?.message,
+      code: error?.code,
+      collection: collectionName,
+    });
+    
+    if (error?.code === 'permission-denied') {
+      console.error("⚠️ Error de permisos: Verifica las reglas de seguridad de Firestore");
+      console.error("Las reglas deben permitir lectura pública para las colecciones que se muestran en el sitio público");
+    } else if (error?.code === 'unavailable') {
+      console.error("⚠️ Error de conexión: Firebase no está disponible");
+    }
+    
     throw error;
   }
 }

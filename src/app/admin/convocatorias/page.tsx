@@ -4,6 +4,7 @@ import { HiSave } from "react-icons/hi";
 import AuthCheck from "@/components/Auth/AuthCheck";
 import {
   getCollection,
+  getDocument,
   addDocument,
   updateDocument,
 } from "@/lib/firestore-helpers";
@@ -39,36 +40,91 @@ export default function CallsPage() {
 
   useEffect(() => {
     loadCallsContent();
+    // Función de depuración para listar todas las convocatorias
+    debugListAllCalls();
   }, []);
 
-  const loadCallsContent = async () => {
+  // Función de depuración para ver todas las convocatorias
+  const debugListAllCalls = async () => {
     try {
-      const data = await getCollection("calls");
+      const allCalls = await getCollection("calls");
+      console.log("📋 TODAS LAS CONVOCATORIAS EN LA BASE DE DATOS:");
+      console.log(`Total: ${allCalls.length}`);
+      allCalls.forEach((call: any, index: number) => {
+        console.log(`\n${index + 1}. ID: ${call.id}`);
+        console.log(`   - Título: ${call.title || "Sin título"}`);
+        console.log(`   - Activa: ${call.is_active}`);
+        console.log(`   - Form Link: ${call.form_link || "Sin link"}`);
+        console.log(
+          `   - Updated: ${
+            call.updated_at?.toDate
+              ? call.updated_at.toDate().toISOString()
+              : call.updated_at || "N/A"
+          }`
+        );
+        console.log(
+          `   - Created: ${
+            call.created_at?.toDate
+              ? call.created_at.toDate().toISOString()
+              : call.created_at || "N/A"
+          }`
+        );
+      });
+    } catch (error) {
+      console.error("Error al listar convocatorias:", error);
+    }
+  };
 
-      if (data && data.length > 0) {
-        // Ordenar por fecha de creación/actualización y obtener el más reciente
-        const sortedCalls = data.sort((a: any, b: any) => {
-          const dateA = a.created_at?.toDate
-            ? a.created_at.toDate()
-            : a.updated_at?.toDate
-            ? a.updated_at.toDate()
-            : new Date(a.created_at || 0);
-          const dateB = b.created_at?.toDate
-            ? b.created_at.toDate()
-            : b.updated_at?.toDate
-            ? b.updated_at.toDate()
-            : new Date(b.created_at || 0);
-          return dateB.getTime() - dateA.getTime();
-        });
+  const loadCallsContent = async (specificId?: string) => {
+    try {
+      let callData: any = null;
 
-        // Buscar primero una convocatoria activa, si no hay ninguna, tomar la más reciente
-        const callData =
-          sortedCalls.find((call: any) => Boolean(call.is_active)) ||
-          sortedCalls[0];
+      // Si tenemos un ID específico (pasado como parámetro o del estado), cargar directamente esa convocatoria
+      const idToLoad = specificId || content.id;
+      if (idToLoad) {
+        try {
+          callData = await getDocument("calls", idToLoad);
+        } catch (error) {
+          console.warn(
+            "No se pudo cargar la convocatoria por ID, buscando en toda la colección:",
+            error
+          );
+        }
+      }
 
+      // Si no encontramos la convocatoria por ID, buscar en toda la colección
+      if (!callData) {
+        const data = await getCollection("calls");
+
+        if (data && data.length > 0) {
+          // En el admin, SIEMPRE cargar la más reciente por updated_at (sin importar si está activa)
+          // Esto asegura que siempre editemos la convocatoria que acabamos de modificar
+          const sortedCalls = data.sort((a: any, b: any) => {
+            const dateA = a.updated_at?.toDate
+              ? a.updated_at.toDate()
+              : a.created_at?.toDate
+              ? a.created_at.toDate()
+              : new Date(a.created_at || 0);
+            const dateB = b.updated_at?.toDate
+              ? b.updated_at.toDate()
+              : b.created_at?.toDate
+              ? b.created_at.toDate()
+              : new Date(b.created_at || 0);
+            return dateB.getTime() - dateA.getTime();
+          });
+
+          // Tomar siempre la más reciente (la que se editó por última vez)
+          callData = sortedCalls[0];
+        }
+      }
+
+      if (callData) {
         setContent({
           id: callData.id,
-          is_active: callData.is_active || false,
+          is_active:
+            callData.is_active === true || callData.is_active === false
+              ? Boolean(callData.is_active)
+              : false,
           deadline: callData.deadline?.toDate
             ? callData.deadline.toDate().toISOString().split("T")[0]
             : callData.deadline || "",
@@ -92,8 +148,24 @@ export default function CallsPage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      // Guardar el ID actual antes de actualizar
+      const currentId = content.id;
+
+      // Asegurar que is_active se guarde como booleano explícito
+      const isActiveValue =
+        content.is_active === true || content.is_active === false
+          ? Boolean(content.is_active)
+          : false;
+
+      console.log("💾 Guardando convocatoria:", {
+        id: currentId,
+        is_active: isActiveValue,
+        form_link: content.form_link,
+        title: content.title,
+      });
+
       const callsData = {
-        is_active: Boolean(content.is_active),
+        is_active: isActiveValue,
         deadline: content.deadline ? new Date(content.deadline) : null,
         feria_date: content.feria_date ? new Date(content.feria_date) : null,
         location: content.location || null,
@@ -104,21 +176,45 @@ export default function CallsPage() {
         updated_at: new Date(),
       };
 
-      if (content.id) {
+      let savedId = currentId;
+
+      if (currentId) {
         // Actualizar convocatoria existente
-        await updateDocument("calls", content.id, callsData);
+        console.log("📝 Actualizando convocatoria existente:", currentId);
+        await updateDocument("calls", currentId, callsData);
+        console.log("✅ Convocatoria actualizada");
       } else {
         // Crear nueva convocatoria
-        const newId = await addDocument("calls", {
+        console.log("➕ Creando nueva convocatoria");
+        savedId = await addDocument("calls", {
           ...callsData,
           created_at: new Date(),
         });
-        setContent({ ...content, id: newId });
+        console.log("✅ Convocatoria creada con ID:", savedId);
+        setContent({ ...content, id: savedId });
       }
 
       setHasUnsavedChanges(false);
       alert("Cambios guardados correctamente");
-      await loadCallsContent();
+
+      // Recargar SOLO la convocatoria que acabamos de guardar usando su ID
+      if (savedId) {
+        console.log("🔄 Recargando convocatoria con ID:", savedId);
+        await loadCallsContent(savedId);
+
+        // Verificar que se cargó correctamente
+        try {
+          const reloadedData = await getDocument("calls", savedId);
+          console.log("✅ Datos recargados de Firestore:", {
+            id: reloadedData?.id,
+            is_active: reloadedData?.is_active,
+            form_link: reloadedData?.form_link,
+            title: reloadedData?.title,
+          });
+        } catch (error) {
+          console.error("⚠️ Error al verificar datos recargados:", error);
+        }
+      }
     } catch (error) {
       console.error("❌ Error guardando cambios:", error);
       alert(`Error al guardar los cambios: ${error}`);

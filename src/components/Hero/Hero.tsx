@@ -33,8 +33,18 @@ export default function Hero() {
       if (data && data.length > 0) {
         setSettings(data[0]);
       }
-    } catch (error) {
-      console.error("Error:", error);
+    } catch (error: any) {
+      console.error("❌ Error cargando configuración del hero:", error);
+      console.error("Detalles del error:", {
+        message: error?.message,
+        code: error?.code,
+      });
+      
+      if (error?.code === 'permission-denied') {
+        console.error("⚠️ Error de permisos: Las reglas de Firestore pueden estar bloqueando el acceso");
+      } else if (error?.code === 'unavailable') {
+        console.error("⚠️ Error de conexión: Firebase no está disponible");
+      }
     } finally {
       setIsLoading(false);
     }

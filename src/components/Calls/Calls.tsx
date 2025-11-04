@@ -72,8 +72,19 @@ export default function Calls() {
       } else {
         setCallData(null);
       }
-    } catch (error) {
-      console.error("Error cargando convocatoria:", error);
+    } catch (error: any) {
+      console.error("❌ Error cargando convocatoria:", error);
+      console.error("Detalles del error:", {
+        message: error?.message,
+        code: error?.code,
+      });
+      
+      if (error?.code === 'permission-denied') {
+        console.error("⚠️ Error de permisos: Las reglas de Firestore pueden estar bloqueando el acceso");
+      } else if (error?.code === 'unavailable') {
+        console.error("⚠️ Error de conexión: Firebase no está disponible");
+      }
+      
       setCallData(null);
     } finally {
       setIsLoading(false);

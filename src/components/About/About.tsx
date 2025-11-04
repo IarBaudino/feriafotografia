@@ -107,8 +107,23 @@ export default function About() {
           console.log("❌ No se encontraron imágenes en el About");
           setCollageImages([]);
         }
-      } catch (error) {
-        console.error("Error fetching data:", error);
+      } catch (error: any) {
+        console.error("❌ Error fetching data:", error);
+        console.error("Detalles del error:", {
+          message: error?.message,
+          code: error?.code,
+          stack: error?.stack,
+        });
+        
+        // Mostrar mensaje de error más detallado
+        if (error?.code === 'permission-denied') {
+          console.error("⚠️ Error de permisos: Las reglas de Firestore pueden estar bloqueando el acceso");
+        } else if (error?.code === 'unavailable') {
+          console.error("⚠️ Error de conexión: Firebase no está disponible. Verifica tu conexión a internet.");
+        } else if (error?.message?.includes('Missing or insufficient permissions')) {
+          console.error("⚠️ Error de permisos: Verifica las reglas de seguridad de Firestore");
+        }
+        
         setCollageImages([]);
       }
     }
