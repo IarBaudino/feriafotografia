@@ -1,6 +1,6 @@
-import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { initializeApp, FirebaseApp } from "firebase/app";
+import { getFirestore, Firestore } from "firebase/firestore";
+import { getAuth, Auth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -34,23 +34,11 @@ if (missingVars.length > 0 && typeof window !== 'undefined') {
 }
 
 // Inicializar Firebase
-let app;
-let db;
-let auth;
+const app: FirebaseApp = initializeApp(firebaseConfig);
+const db: Firestore = getFirestore(app);
+const auth: Auth = getAuth(app);
 
-try {
-  app = initializeApp(firebaseConfig);
-  db = getFirestore(app);
-  auth = getAuth(app);
-} catch (error) {
-  console.error('❌ ERROR inicializando Firebase:', error);
-  if (typeof window !== 'undefined') {
-    console.error('Verifica que las variables de entorno estén configuradas correctamente.');
-  }
-  throw error;
-}
-
-// Exportar servicios
+// Exportar servicios con tipos explícitos
 export { db, auth };
 export default app;
 
