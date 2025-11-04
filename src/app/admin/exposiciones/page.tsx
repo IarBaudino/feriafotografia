@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = 'force-dynamic';
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { HiPlus, HiPencil, HiTrash, HiSave, HiUpload } from "react-icons/hi";

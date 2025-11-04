@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = 'force-dynamic';
 import { useState, useEffect } from "react";
 // Migrado a Firebase
 import { HiSave, HiEye, HiEyeOff } from "react-icons/hi";

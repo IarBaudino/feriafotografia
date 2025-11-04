@@ -1,6 +1,6 @@
-import { initializeApp, FirebaseApp } from "firebase/app";
-import { getFirestore, Firestore } from "firebase/firestore";
-import { getAuth, Auth } from "firebase/auth";
+import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -11,34 +11,10 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Validar que todas las variables de entorno estén configuradas
-const requiredEnvVars = [
-  'NEXT_PUBLIC_FIREBASE_API_KEY',
-  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
-  'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
-  'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
-  'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
-  'NEXT_PUBLIC_FIREBASE_APP_ID',
-];
-
-const missingVars = requiredEnvVars.filter(
-  (varName) => !process.env[varName]
-);
-
-if (missingVars.length > 0 && typeof window !== 'undefined') {
-  console.error('❌ ERROR: Variables de entorno de Firebase faltantes:', missingVars);
-  console.error('Por favor, crea un archivo .env.local con las siguientes variables:');
-  missingVars.forEach((varName) => {
-    console.error(`  ${varName}=tu_valor_aqui`);
-  });
-}
-
 // Inicializar Firebase
-const app: FirebaseApp = initializeApp(firebaseConfig);
-const db: Firestore = getFirestore(app);
-const auth: Auth = getAuth(app);
+const app = initializeApp(firebaseConfig);
 
-// Exportar servicios con tipos explícitos
-export { db, auth };
+// Exportar servicios
+export const db = getFirestore(app);
+export const auth = getAuth(app);
 export default app;
-
