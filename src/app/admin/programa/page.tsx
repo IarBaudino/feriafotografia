@@ -85,7 +85,13 @@ export default function ProgramaPage() {
           ...latestProgram,
           days: (latestProgram as any).days?.map((day: any) => ({
             ...day,
-            date: day.date?.toDate ? day.date.toDate() : day.date instanceof Date ? day.date : new Date(day.date),
+            date: day.date?.toDate
+              ? day.date.toDate()
+              : day.date instanceof Date
+              ? day.date
+              : day.date
+              ? new Date(day.date)
+              : null,
           })) || [],
         } as Program;
         setCurrentProgram(processedProgram);
@@ -113,7 +119,13 @@ export default function ProgramaPage() {
           ...fullProgram,
           days: (fullProgram as any).days?.map((day: any) => ({
             ...day,
-            date: day.date?.toDate ? day.date.toDate() : day.date instanceof Date ? day.date : new Date(day.date),
+            date: day.date?.toDate
+              ? day.date.toDate()
+              : day.date instanceof Date
+              ? day.date
+              : day.date
+              ? new Date(day.date)
+              : null,
           })) || [],
         } as Program;
         setCurrentProgram(processedProgram);
@@ -267,7 +279,12 @@ export default function ProgramaPage() {
         note: currentProgram.note || "",
         days: currentProgram.days.map((day) => ({
           ...day,
-          date: day.date instanceof Date ? day.date : new Date(day.date),
+          date:
+            day.date instanceof Date || day.date === null
+              ? day.date
+              : day.date
+              ? new Date(day.date)
+              : null,
         })),
         updated_at: new Date(),
       };
@@ -483,10 +500,8 @@ export default function ProgramaPage() {
                           value={
                             day.date instanceof Date
                               ? day.date.toISOString().split("T")[0]
-                              : typeof day.date === "string"
+                              : typeof day.date === "string" && day.date
                               ? day.date.split("T")[0]
-                              : day.date?.toDate
-                              ? day.date.toDate().toISOString().split("T")[0]
                               : ""
                           }
                           onChange={(e) => {
