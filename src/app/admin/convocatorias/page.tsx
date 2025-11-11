@@ -1,5 +1,5 @@
 "use client";
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 import { useState, useEffect } from "react";
 import { HiSave } from "react-icons/hi";
 import AuthCheck from "@/components/Auth/AuthCheck";
@@ -21,6 +21,7 @@ interface CallsContent {
   description: string;
   horario?: string;
   created_at?: string;
+  show_program: boolean;
 }
 
 export default function CallsPage() {
@@ -34,6 +35,7 @@ export default function CallsPage() {
     title: "Convocatoria Abierta",
     description: "¡Participa en la próxima edición de la Feria de Fotografía!",
     horario: "",
+    show_program: false,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -137,6 +139,10 @@ export default function CallsPage() {
           title: callData.title || "Convocatoria Abierta",
           description: callData.description || "",
           horario: callData.horario || "",
+          show_program:
+            callData.show_program === true || callData.show_program === false
+              ? Boolean(callData.show_program)
+              : false,
         });
       }
     } catch (error) {
@@ -174,6 +180,7 @@ export default function CallsPage() {
         title: content.title,
         description: content.description,
         horario: content.horario || null,
+        show_program: Boolean(content.show_program),
         updated_at: new Date(),
       };
 
@@ -253,6 +260,30 @@ export default function CallsPage() {
               <span className="text-sm font-medium">Convocatoria activa</span>
             </label>
           </div>
+
+          {/* Mostrar programación */}
+          {!content.is_active && (
+            <div className="mb-6">
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={content.show_program}
+                  onChange={(e) => {
+                    setContent({ ...content, show_program: e.target.checked });
+                    setHasUnsavedChanges(true);
+                  }}
+                  className="form-checkbox h-5 w-5 text-accent-green"
+                />
+                <span className="text-sm font-medium">
+                  Mostrar programación en la web
+                </span>
+              </label>
+              <p className="text-xs text-gray-500 mt-2">
+                Activa esta opción cuando tengas listo el cronograma para que se
+                muestre automáticamente en lugar de la convocatoria.
+              </p>
+            </div>
+          )}
 
           {/* Título */}
           <div className="mb-6">

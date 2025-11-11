@@ -62,6 +62,12 @@ const sidebarItems = [
     path: "/admin/convocatorias",
   },
   {
+    title: "Programación",
+    description: "Programa de la feria",
+    icon: HiCalendar,
+    path: "/admin/programa",
+  },
+  {
     title: "Mi Perfil",
     description: "Gestionar cuenta y contraseña",
     icon: HiUser,
