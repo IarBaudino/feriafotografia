@@ -8,6 +8,7 @@ import {
   getDocumentsWithFilter,
   removeDuplicateImages,
 } from "@/lib/firestore-helpers";
+import { getOptimizedCloudinaryUrl, isCloudinaryUrl } from "@/lib/cloudinary-helpers";
 
 interface CollageImage {
   src: string;
@@ -85,12 +86,27 @@ export default function About() {
             );
           });
 
-          const formattedImages = uniqueImages.map((img) => ({
-            src: `${img.url}?v=${Date.now()}`,
-            alt: img.alt || "Feria Fotografía",
-            className:
-              "mb-4 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300",
-          }));
+          const formattedImages = uniqueImages.map((img) => {
+            // Aplicar transformaciones de Cloudinary si es una URL de Cloudinary
+            const isCloudinary = isCloudinaryUrl(img.url);
+            const optimizedUrl = isCloudinary
+              ? getOptimizedCloudinaryUrl(img.url, 500, 500)
+              : img.url;
+            
+            console.log(`🖼️ Imagen ${img.id}:`, {
+              original: img.url,
+              isCloudinary,
+              optimized: optimizedUrl,
+            });
+            console.log(`   URL completa optimizada:`, optimizedUrl);
+            
+            return {
+              src: optimizedUrl,
+              alt: img.alt || "Feria Fotografía",
+              className:
+                "mb-4 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300",
+            };
+          });
 
           console.log("\n🎨 IMÁGENES FINALES QUE SE MUESTRAN:");
           console.log(`📊 Total imágenes a mostrar: ${formattedImages.length}`);
@@ -198,6 +214,7 @@ export default function About() {
                         height={500}
                         className="w-full h-auto object-cover hover:scale-105 transition-transform duration-500"
                         sizes="(max-width: 768px) 100vw, 50vw"
+                        unoptimized={isCloudinaryUrl(image.src)}
                       />
                     </div>
                   </motion.div>

@@ -5,6 +5,7 @@ const nextConfig = {
     styledComponents: true,
   },
   images: {
+    // Mantenemos la optimización de Next.js pero las imágenes de Cloudinary ya vienen optimizadas
     remotePatterns: [
       {
         protocol: "https",

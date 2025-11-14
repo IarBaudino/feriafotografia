@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { getDocumentsWithFilter } from "@/lib/firestore-helpers";
+import { getOptimizedCloudinaryUrl, isCloudinaryUrl } from "@/lib/cloudinary-helpers";
 
 interface SiteSettings {
   hero_type: "image" | "video";
@@ -100,13 +101,18 @@ export default function Hero() {
       <div className="relative w-screen aspect-[12/5] md:aspect-[21/9]">
         {settings.hero_type === "image" && settings.hero_image_url ? (
           <Image
-            src={settings.hero_image_url}
+            src={
+              isCloudinaryUrl(settings.hero_image_url)
+                ? getOptimizedCloudinaryUrl(settings.hero_image_url, 1920, 1080)
+                : settings.hero_image_url
+            }
             alt="Feria Fotografía"
             fill
             priority
             className="object-contain object-top md:object-cover md:object-center"
             sizes="100vw"
             style={{ objectPosition: "top center" }}
+            unoptimized={isCloudinaryUrl(settings.hero_image_url)}
           />
         ) : settings.hero_type === "video" && settings.hero_video_url ? (
           settings.hero_video_type === "upload" ? (
