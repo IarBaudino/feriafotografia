@@ -210,7 +210,7 @@ export default function ExposicionesPage() {
                       className="relative"
                     >
                       <div
-                        className="prose prose-lg max-w-none text-justify [&_p]:mb-4 [&_h1]:text-4xl [&_h2]:text-3xl [&_h3]:text-2xl [&_ul]:list-disc [&_ol]:list-decimal [&_ul,&_ol]:pl-4 [&_blockquote]:border-l-4 [&_blockquote]:border-accent-blue [&_blockquote]:pl-4 [&_blockquote]:italic [&_p:first-of-type]:mt-0 [&_.ql-font-bevietnam]:font-bevietnam [&_.ql-font-joly]:font-joly"
+                        className="prose prose-lg max-w-none text-justify [&_p]:mb-4 [&_h1]:text-4xl [&_h2]:text-3xl [&_h3]:text-2xl [&_ul]:list-disc [&_ol]:list-decimal [&_ul,&_ol]:pl-4 [&_blockquote]:border-l-4 [&_blockquote]:border-accent-blue [&_blockquote]:pl-4 [&_blockquote]:italic [&_p:first-of-type]:mt-0 [&_.ql-font-bevietnam]:font-bevietnam [&_.ql-font-joly]:font-bevietnam"
                         dangerouslySetInnerHTML={{
                           __html: selectedExposicion.description.slice(
                             0,
@@ -227,7 +227,7 @@ export default function ExposicionesPage() {
                       className="relative"
                     >
                       <div
-                        className="prose prose-lg max-w-none text-justify [&_p]:mb-4 [&_h1]:text-4xl [&_h2]:text-3xl [&_h3]:text-2xl [&_ul]:list-disc [&_ol]:list-decimal [&_ul,&_ol]:pl-4 [&_blockquote]:border-l-4 [&_blockquote]:border-accent-blue [&_blockquote]:pl-4 [&_blockquote]:italic [&_p:first-of-type]:mt-0 [&_.ql-font-bevietnam]:font-bevietnam [&_.ql-font-joly]:font-joly"
+                        className="prose prose-lg max-w-none text-justify [&_p]:mb-4 [&_h1]:text-4xl [&_h2]:text-3xl [&_h3]:text-2xl [&_ul]:list-disc [&_ol]:list-decimal [&_ul,&_ol]:pl-4 [&_blockquote]:border-l-4 [&_blockquote]:border-accent-blue [&_blockquote]:pl-4 [&_blockquote]:italic [&_p:first-of-type]:mt-0 [&_.ql-font-bevietnam]:font-bevietnam [&_.ql-font-joly]:font-bevietnam"
                         dangerouslySetInnerHTML={{
                           __html: selectedExposicion.description.slice(
                             selectedExposicion.description.length / 2

@@ -79,7 +79,7 @@ function PreviewModal({ edicion, isOpen, onClose }: PreviewModalProps) {
             <h1 className="text-4xl md:text-5xl font-bevietnam font-bold text-bg-secondary mb-3">
               {edicion.title}
             </h1>
-            <p className="text-xl font-joly italic text-accent-blue mb-6">
+            <p className="text-xl font-bevietnam italic text-accent-blue mb-6">
               {edicion.date
                 ? new Date(edicion.date).toLocaleDateString("es-ES", {
                     year: "numeric",
@@ -1123,7 +1123,7 @@ export default function EdicionesAdminPage() {
                     <h1 className="text-4xl md:text-5xl font-bevietnam font-bold text-bg-secondary mb-3">
                       {currentEdicion.title || "Título de la Edición"}
                     </h1>
-                    <p className="text-xl font-joly italic text-accent-blue mb-6">
+                    <p className="text-xl font-bevietnam italic text-accent-blue mb-6">
                       {currentEdicion.date
                         ? new Date(currentEdicion.date).toLocaleDateString(
                             "es-ES",

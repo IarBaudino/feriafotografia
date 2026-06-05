@@ -99,7 +99,7 @@ export default function Contact() {
             href="https://www.instagram.com/feriadefotografia?igsh=MXA2amJyaGtqZXo3Mg=="
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center text-bg-primary hover:text-accent-blue transition-all mt-2 font-joly italic group hover:-translate-y-1"
+            className="inline-flex items-center text-bg-primary hover:text-accent-blue transition-all mt-2 font-bevietnam italic group hover:-translate-y-1"
           >
             <FaInstagram
               size={20}

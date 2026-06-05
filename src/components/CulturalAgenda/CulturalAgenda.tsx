@@ -270,7 +270,7 @@ export default function CulturalAgenda() {
                   <motion.div layout className="space-y-3">
                     <div className="flex items-center gap-2">
                       <HiCalendar className="text-bg-secondary" />
-                      <span className="font-joly italic text-text-primary">
+                      <span className="font-bevietnam italic text-text-primary">
                         {new Date(event.date).toLocaleDateString()}
                         {event.endDate && (
                           <> - {new Date(event.endDate).toLocaleDateString()}</>

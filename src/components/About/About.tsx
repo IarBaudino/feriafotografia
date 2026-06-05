@@ -29,7 +29,7 @@ const fontStyles = `
     font-family: var(--font-bevietnam) !important;
   }
   .ql-font-joly {
-    font-family: var(--font-joly) !important;
+    font-family: var(--font-bevietnam) !important;
   }
 `;
 

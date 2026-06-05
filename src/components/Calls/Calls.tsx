@@ -236,13 +236,13 @@ export default function Calls() {
             <div className="space-y-4">
               <p className="font-bevietnam font-thin italic">
                 Fecha límite de inscripción:{" "}
-                <span className="font-joly italic">
-                  {callData.deadline ? formatDate(callData.deadline) : ""}
+                <span className="font-bevietnam italic">
+                  {callData?.deadline ? formatDate(callData.deadline) : ""}
                 </span>
               </p>
               <p className="font-bevietnam font-thin italic">
                 Fecha de la feria:{" "}
-                <span className="font-joly italic">
+                <span className="font-bevietnam italic">
                   {callData.feria_date
                     ? formatDate(callData.feria_date)
                     : "Por confirmar"}
@@ -253,7 +253,7 @@ export default function Calls() {
               </p>
               <p className="font-bevietnam font-thin italic">
                 Horario:{" "}
-                <span className="font-joly italic">
+                <span className="font-bevietnam italic">
                   {callData.horario || "Por confirmar"}
                 </span>
               </p>
@@ -392,7 +392,7 @@ export default function Calls() {
                 <p className="text-text-primary text-lg font-bevietnam font-normal">
                   La convocatoria está cerrada.
                 </p>
-                <p className="font-joly italic text-accent-blue mt-4">
+                <p className="font-bevietnam italic text-accent-blue mt-4">
                   ¡Te esperamos en la feria para disfrutar de todas las actividades!
                 </p>
                 <p className="text-sm text-text-primary/70 font-bevietnam mt-4">

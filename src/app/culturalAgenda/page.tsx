@@ -219,7 +219,7 @@ export default function CulturalAgendaPage() {
                             </span>
                           )}
                         </div>
-                        <p className="text-sm font-joly italic text-accent-blue mb-4">
+                        <p className="text-sm font-bevietnam italic text-accent-blue mb-4">
                           {new Date(event.date).toLocaleDateString()}
                         </p>
                         <div className="space-y-2 text-sm text-text-primary/80">

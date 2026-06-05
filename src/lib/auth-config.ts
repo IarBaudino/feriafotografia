@@ -16,7 +16,9 @@ export const AUTH_CONFIG = {
 
 // Función helper para verificar si un email está autorizado
 export const isEmailAuthorized = (email: string): boolean => {
-  return AUTH_CONFIG.AUTHORIZED_EMAILS.includes(email.toLowerCase());
+  return (AUTH_CONFIG.AUTHORIZED_EMAILS as readonly string[]).includes(
+    email.toLowerCase()
+  );
 };
 
 // Función helper para obtener la lista de emails autorizados

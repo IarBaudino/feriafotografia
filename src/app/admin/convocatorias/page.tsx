@@ -415,11 +415,11 @@ export default function CallsPage() {
                 <div className="space-y-4">
                   <p className="font-bevietnam font-thin italic">
                     Fecha límite de inscripción:{" "}
-                    <span className="font-joly italic">{content.deadline}</span>
+                    <span className="font-bevietnam italic">{content.deadline}</span>
                   </p>
                   <p className="font-bevietnam font-thin italic">
                     Fecha de la feria:{" "}
-                    <span className="font-joly italic">
+                    <span className="font-bevietnam italic">
                       {content.feria_date || "Por confirmar"}
                     </span>
                   </p>
@@ -428,7 +428,7 @@ export default function CallsPage() {
                   </p>
                   <p className="font-bevietnam font-thin italic">
                     Horario:{" "}
-                    <span className="font-joly italic">
+                    <span className="font-bevietnam italic">
                       {content.horario || "Por confirmar"}
                     </span>
                   </p>
@@ -448,7 +448,7 @@ export default function CallsPage() {
                 <p className="text-text-primary text-center text-lg font-bevietnam font-normal">
                   La convocatoria está cerrada.
                 </p>
-                <p className="font-joly italic text-accent-blue mt-4 text-center">
+                <p className="font-bevietnam italic text-accent-blue mt-4 text-center">
                   ¡Te esperamos en la feria para disfrutar de todas las
                   actividades!
                 </p>

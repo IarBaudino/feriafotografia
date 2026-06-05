@@ -16,7 +16,6 @@ module.exports = {
       },
       fontFamily: {
         bevietnam: ["var(--font-bevietnam)"],
-        joly: ["var(--font-joly)"],
       },
       typography: {
         DEFAULT: {

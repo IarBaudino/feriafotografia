@@ -191,7 +191,7 @@ export default function EdicionesPage() {
                   <h2 className="text-4xl md:text-5xl font-bevietnam font-bold text-bg-secondary mb-4">
                     {selectedEdicion.title}
                   </h2>
-                  <p className="text-xl font-joly italic text-accent-blue">
+                  <p className="text-xl font-bevietnam italic text-accent-blue">
                     {new Date(selectedEdicion.date).toLocaleDateString(
                       "es-ES",
                       {

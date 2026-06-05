@@ -18,7 +18,7 @@ export default function Footer() {
                 href="https://www.instagram.com/feriadefotografia?igsh=MXA2amJyaGtqZXo3Mg=="
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 hover:text-accent-blue transition-colors font-joly italic group"
+                className="flex items-center gap-2 hover:text-accent-blue transition-colors font-bevietnam italic group"
               >
                 <FaInstagram
                   size={18}
@@ -28,7 +28,7 @@ export default function Footer() {
               </a>
               <a
                 href="mailto:feriadefotografia@gmail.com"
-                className="flex items-center gap-2 hover:text-accent-blue transition-colors font-joly italic group"
+                className="flex items-center gap-2 hover:text-accent-blue transition-colors font-bevietnam italic group"
               >
                 <FaEnvelope
                   size={18}

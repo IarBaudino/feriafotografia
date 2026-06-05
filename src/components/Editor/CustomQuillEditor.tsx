@@ -7,9 +7,8 @@ const ReactQuill = dynamic(
     const { default: RQ } = await import("react-quill");
     const { default: Quill } = await import("quill");
 
-    // Configurar las fuentes personalizadas
     const Font = Quill.import("formats/font");
-    Font.whitelist = ["bevietnam", "joly"];
+    Font.whitelist = ["bevietnam"];
     Quill.register(Font, true);
 
     return RQ;
@@ -23,13 +22,12 @@ interface CustomQuillEditorProps {
   className?: string;
 }
 
-// Agregar estilos globales para la vista previa
 const previewStyles = `
   .ql-font-bevietnam {
     font-family: var(--font-bevietnam) !important;
   }
   .ql-font-joly {
-    font-family: var(--font-joly) !important;
+    font-family: var(--font-bevietnam) !important;
   }
 `;
 
@@ -42,7 +40,6 @@ export default function CustomQuillEditor({
     () => ({
       toolbar: {
         container: [
-          [{ font: ["bevietnam", "joly"] }],
           [{ header: [1, 2, 3, false] }],
           ["bold", "italic", "underline"],
           [{ color: [] }],
@@ -55,7 +52,6 @@ export default function CustomQuillEditor({
   );
 
   const formats = [
-    "font",
     "header",
     "bold",
     "italic",
@@ -65,7 +61,6 @@ export default function CustomQuillEditor({
     "link",
   ];
 
-  // Agregar estilos para la vista previa
   useMemo(() => {
     if (typeof window !== "undefined") {
       const style = document.createElement("style");
@@ -78,34 +73,16 @@ export default function CustomQuillEditor({
   return (
     <>
       <style jsx global>{`
-        /* Estilos base del editor */
         .ql-editor {
           font-family: var(--font-bevietnam);
         }
 
-        /* Estilos para las fuentes en el selector */
         .ql-font-bevietnam {
           font-family: var(--font-bevietnam) !important;
         }
+
         .ql-font-joly {
-          font-family: var(--font-joly) !important;
-        }
-
-        /* Nombres en el selector de fuentes */
-        .ql-snow
-          .ql-picker.ql-font
-          .ql-picker-label[data-value="bevietnam"]::before,
-        .ql-snow
-          .ql-picker.ql-font
-          .ql-picker-item[data-value="bevietnam"]::before {
-          content: "Be Vietnam Pro" !important;
-          font-family: var(--font-bevietnam);
-        }
-
-        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="joly"]::before,
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="joly"]::before {
-          content: "Joly Display" !important;
-          font-family: var(--font-joly);
+          font-family: var(--font-bevietnam) !important;
         }
       `}</style>
       <ReactQuill

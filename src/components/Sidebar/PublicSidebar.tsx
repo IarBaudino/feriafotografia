@@ -87,7 +87,7 @@ export default function PublicSidebar({
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-bevietnam font-bold text-white leading-tight pr-12 md:pr-0">
               {title}
             </h1>
-            <p className="text-xs md:text-base font-joly italic text-accent-blue mt-2">
+            <p className="text-xs md:text-base font-bevietnam italic text-accent-blue mt-2">
               Explora nuestras actividades
             </p>
           </div>
@@ -130,7 +130,7 @@ export default function PublicSidebar({
           </div>
 
           <div className="border-t border-accent-blue/20 p-4">
-            <p className="font-joly italic text-xs text-accent-blue text-center">
+            <p className="font-bevietnam italic text-xs text-accent-blue text-center">
               Feria Fotografía
             </p>
           </div>
