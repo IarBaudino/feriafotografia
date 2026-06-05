@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar/Navbar";
-import localFont from "next/font/local";
 import Footer from "@/components/Footer/Footer";
 import { Be_Vietnam_Pro } from "next/font/google";
 
@@ -10,13 +9,6 @@ const beVietnam = Be_Vietnam_Pro({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-bevietnam",
-});
-
-// Joly Display
-const jolyDisplay = localFont({
-  src: "../../src/fonts/JolyDisplay/JolyDisplay-MediumItalic.woff2",
-  variable: "--font-joly",
-  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -33,7 +25,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`scroll-smooth ${beVietnam.variable} ${jolyDisplay.variable}`}
+      className={`scroll-smooth ${beVietnam.variable}`}
     >
       <body className="bg-bg-primary text-text-primary font-bevietnam">
         <Navbar />

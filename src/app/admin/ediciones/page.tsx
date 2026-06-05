@@ -66,7 +66,7 @@ function PreviewModal({ edicion, isOpen, onClose }: PreviewModalProps) {
             <h1 className="text-4xl md:text-5xl font-bevietnam font-bold text-bg-secondary mb-3">
               {edicion.title}
             </h1>
-            <p className="text-xl font-joly italic text-accent-blue mb-6">
+            <p className="text-xl font-bevietnam italic text-accent-blue mb-6">
               {edicion.date}
             </p>
             <div className="grid grid-cols-2 gap-6">
@@ -484,7 +484,7 @@ export default function EdicionesAdminPage() {
                     <h3 className="text-xl font-bold text-bg-secondary font-bevietnam mb-2">
                       {edicion.title}
                     </h3>
-                    <p className="text-sm text-accent-blue font-joly mb-4">
+                    <p className="text-sm text-accent-blue font-bevietnam mb-4">
                       {new Date(edicion.date).toLocaleDateString()}
                     </p>
                     <p className="text-sm text-text-primary/80 mb-4 line-clamp-2">

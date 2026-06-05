@@ -55,7 +55,12 @@ main {
 
   /* Textos destacados, fechas */
   .text-display {
-    @apply font-joly italic;
+    @apply font-bevietnam italic;
+  }
+
+  /* Contenido del editor con fuente antigua */
+  .ql-font-joly {
+    font-family: var(--font-bevietnam) !important;
   }
 }
 

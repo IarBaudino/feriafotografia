@@ -121,7 +121,7 @@ export default function Calls() {
             <div className="space-y-4">
               <p className="font-bevietnam font-thin italic">
                 Fecha límite:{" "}
-                <span className="font-joly italic">
+                <span className="font-bevietnam italic">
                   {callData?.deadline ? formatDate(callData.deadline) : ""}
                 </span>
               </p>
@@ -149,7 +149,7 @@ export default function Calls() {
             <p className="text-text-primary text-center text-lg font-bevietnam font-normal">
               No hay convocatorias abiertas en este momento.
               <br />
-              <span className="font-joly italic">
+              <span className="font-bevietnam italic">
                 ¡Mantente atento a nuestras redes sociales para futuras
                 convocatorias!
               </span>

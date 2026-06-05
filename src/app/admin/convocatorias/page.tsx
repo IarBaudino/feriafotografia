@@ -210,7 +210,7 @@ export default function CallsPage() {
                 <div className="space-y-4">
                   <p className="font-bevietnam font-thin italic">
                     Fecha límite:{" "}
-                    <span className="font-joly italic">{content.deadline}</span>
+                    <span className="font-bevietnam italic">{content.deadline}</span>
                   </p>
                   <p className="font-bevietnam font-thin italic">
                     Lugar: <span className="text-thin">{content.location}</span>
@@ -231,7 +231,7 @@ export default function CallsPage() {
                 <p className="text-text-primary text-center text-lg font-bevietnam font-normal">
                   No hay convocatorias abiertas en este momento.
                   <br />
-                  <span className="font-joly italic">
+                  <span className="font-bevietnam italic">
                     ¡Mantente atento a nuestras redes sociales para futuras
                     convocatorias!
                   </span>

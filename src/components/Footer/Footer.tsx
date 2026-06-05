@@ -18,14 +18,14 @@ export default function Footer() {
                 href="https://instagram.com/feriafotografia"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 hover:text-accent-blue transition-colors font-joly italic group"
+                className="flex items-center gap-2 hover:text-accent-blue transition-colors font-bevietnam italic group"
               >
                 <FaInstagram size={18} className="group-hover:rotate-12 transition-transform" />
                 @feriafotografia
               </a>
               <a
                 href="mailto:contacto@feriafotografia.com"
-                className="flex items-center gap-2 hover:text-accent-blue transition-colors font-joly italic group"
+                className="flex items-center gap-2 hover:text-accent-blue transition-colors font-bevietnam italic group"
               >
                 <FaEnvelope size={18} className="group-hover:rotate-12 transition-transform" />
                 contacto@feriafotografia.com

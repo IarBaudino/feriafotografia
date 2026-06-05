@@ -12,28 +12,76 @@ interface TeamMember {
   image_url: string;
   instagram?: string;
   website?: string;
-  created_at?: string;
 }
 
 export default function Team() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadTeamMembers = async () => {
-      const { data } = await supabase
-        .from("team_members")
-        .select("*")
-        .order("created_at", { ascending: true });
+      try {
+        setIsLoading(true);
+        setError(null);
 
-      if (data) setTeamMembers(data);
-      setIsLoading(false);
+        // Obtener los miembros del equipo
+        const { data: teamData, error: teamError } = await supabase
+          .from("team_members")
+          .select("*")
+          .order("created_at", { ascending: true });
+
+        if (teamError) {
+          console.error("Error cargando equipo:", teamError);
+          setError("Error cargando el equipo");
+          return;
+        }
+
+        if (teamData) {
+          console.log("Datos del equipo recibidos:", teamData);
+
+          // Para cada miembro, asegurarnos que la URL de la imagen es pública
+          const membersWithPublicUrls = teamData.map((member) => {
+            if (member.image_url && member.image_url.startsWith("team/")) {
+              // Obtener la URL pública del bucket
+              const {
+                data: { publicUrl },
+              } = supabase.storage
+                .from("images")
+                .getPublicUrl(member.image_url);
+              return { ...member, image_url: publicUrl };
+            }
+            return member;
+          });
+
+          setTeamMembers(membersWithPublicUrls);
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        setError("Error inesperado cargando el equipo");
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadTeamMembers();
   }, []);
 
-  if (isLoading) return null;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-lg text-bg-secondary">Cargando equipo...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-lg text-red-500">{error}</p>
+      </div>
+    );
+  }
 
   const breakpointColumns = {
     default: 3,

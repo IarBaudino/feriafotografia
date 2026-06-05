@@ -71,7 +71,7 @@ export default function Editions() {
               <div className="p-6">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
                   <div>
-                    <span className="font-joly italic text-bg-secondary">
+                    <span className="font-bevietnam italic text-bg-secondary">
                       {edition.date}
                     </span>
                     <h3 className="text-xl font-bevietnam font-bold text-bg-secondary mt-1">

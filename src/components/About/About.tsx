@@ -80,7 +80,7 @@ const fontStyles = `
     font-family: var(--font-bevietnam) !important;
   }
   .ql-font-joly {
-    font-family: var(--font-joly) !important;
+    font-family: var(--font-bevietnam) !important;
   }
 `;
 
@@ -143,7 +143,12 @@ export default function About() {
     const style = document.createElement("style");
     style.innerHTML = fontStyles;
     document.head.appendChild(style);
-    return () => document.head.removeChild(style);
+
+    // Corregir el tipo de retorno del cleanup function
+    return () => {
+      document.head.removeChild(style);
+      // No retornar nada (void)
+    };
   }, []);
 
   const breakpointColumns = {
