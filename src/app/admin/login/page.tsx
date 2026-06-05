@@ -96,6 +96,25 @@ export default function LoginPage() {
             {loading ? "Iniciando sesión..." : "Iniciar sesión"}
           </button>
         </form>
+
+        <div className="mt-6 space-y-3 text-center">
+          <div>
+            <button
+              onClick={() => router.push("/admin/reset")}
+              className="text-sm text-bg-secondary hover:underline"
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+          </div>
+          <div>
+            <button
+              onClick={() => router.push("/admin/register")}
+              className="text-sm text-bg-secondary hover:underline"
+            >
+              Crear cuenta de administrador
+            </button>
+          </div>
+        </div>
       </div>
     </main>
   );

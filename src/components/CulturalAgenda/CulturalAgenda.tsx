@@ -309,14 +309,15 @@ export default function CulturalAgenda() {
                             />
                           </motion.div>
                         )}
-                        <motion.p
+                        <motion.div
                           className="font-bevietnam font-normal text-text-primary"
                           initial={{ y: 20, opacity: 0 }}
                           animate={{ y: 0, opacity: 1 }}
                           transition={{ delay: 0.3 }}
-                        >
-                          {event.description}
-                        </motion.p>
+                          dangerouslySetInnerHTML={{
+                            __html: event.description
+                          }}
+                        />
                         <motion.div
                           className="flex justify-between items-center"
                           initial={{ y: 20, opacity: 0 }}

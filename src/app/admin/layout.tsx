@@ -12,10 +12,19 @@ import {
   HiDocumentText,
   HiMenu,
   HiX,
+  HiEye,
+  HiUser,
 } from "react-icons/hi";
 import Link from "next/link";
+import { trackPageView } from "@/lib/analytics";
 
 const sidebarItems = [
+  {
+    title: "Portada",
+    description: "Configurar imagen/video principal",
+    icon: HiEye,
+    path: "/admin/portada",
+  },
   {
     title: "Agenda Cultural",
     description: "Gestiona eventos y cursos",
@@ -52,6 +61,12 @@ const sidebarItems = [
     icon: HiDocumentText,
     path: "/admin/convocatorias",
   },
+  {
+    title: "Mi Perfil",
+    description: "Gestionar cuenta y contraseña",
+    icon: HiUser,
+    path: "/admin/profile",
+  },
 ];
 
 export default function AdminLayout({
@@ -67,6 +82,10 @@ export default function AdminLayout({
 
   useEffect(() => {
     checkAuth();
+  }, []);
+
+  useEffect(() => {
+    trackPageView(window.location.pathname);
   }, []);
 
   const checkAuth = async () => {
@@ -94,7 +113,9 @@ export default function AdminLayout({
     return null;
   }
 
-  if (pathname === "/admin/login") {
+  // Páginas que no deben mostrar el layout de administración
+  const publicPages = ["/admin/login", "/admin/register", "/admin/reset"];
+  if (publicPages.includes(pathname)) {
     return <>{children}</>;
   }
 
@@ -140,8 +161,15 @@ export default function AdminLayout({
             <div className="p-5">
               <button
                 onClick={async () => {
-                  await supabase.auth.signOut();
-                  router.push("/admin/login");
+                  try {
+                    await supabase.auth.signOut();
+                    // Limpiar cualquier estado local
+                    setIsAuthenticated(false);
+                    // Forzar recarga para limpiar completamente la sesión
+                    window.location.href = "/admin/login";
+                  } catch (error) {
+                    console.error("Error cerrando sesión:", error);
+                  }
                 }}
                 className="w-full px-4 py-2 text-sm text-white bg-accent-green rounded-md hover:bg-opacity-90 transition-colors"
               >

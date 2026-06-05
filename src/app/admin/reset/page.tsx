@@ -1,42 +1,45 @@
 "use client";
-import { useState, useEffect } from "react";
+import React from "react";
+import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { HiMail, HiArrowLeft } from "react-icons/hi";
 
-export default function ResetPassword() {
-  const [password, setPassword] = useState("");
+export default function ResetPasswordPage() {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
   const router = useRouter();
-  const searchParams = useSearchParams();
 
-  // Obtener el token del hash de la URL
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (hash) {
-      const accessToken = hash.split("access_token=")[1]?.split("&")[0];
-      if (accessToken) {
-        // Guardar el token para usarlo en el reset
-        localStorage.setItem("resetToken", accessToken);
-      }
-    }
-  }, []);
-
-  const handleReset = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: password,
+      console.log("Intentando enviar email de recuperación a:", email);
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/admin/login`,
       });
 
       if (error) throw error;
 
-      setSuccess(true);
-      setTimeout(() => {
-        router.push("/admin/login");
-      }, 2000);
-    } catch (error: any) {
-      setError(error.message);
+      setSuccess(
+        "Se ha enviado un email con instrucciones para recuperar tu contraseña. Revisa tu bandeja de entrada."
+      );
+      setEmail("");
+    } catch (error) {
+      console.error("Error enviando email de recuperación:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Error al enviar el email de recuperación"
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -44,8 +47,13 @@ export default function ResetPassword() {
     <main className="min-h-screen flex items-center justify-center bg-bg-primary">
       <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
         <h1 className="text-2xl font-bold text-bg-secondary mb-6 text-center">
-          Restablecer Contraseña
+          Recuperar contraseña
         </h1>
+
+        <p className="text-gray-600 mb-6 text-center">
+          Ingresa tu email y te enviaremos instrucciones para recuperar tu
+          contraseña.
+        </p>
 
         {error && (
           <div className="bg-red-100 text-red-600 p-3 rounded-lg mb-4">
@@ -53,38 +61,48 @@ export default function ResetPassword() {
           </div>
         )}
 
-        {success ? (
+        {success && (
           <div className="bg-green-100 text-green-600 p-3 rounded-lg mb-4">
-            ¡Contraseña actualizada! Redirigiendo al login...
+            {success}
           </div>
-        ) : (
-          <form onSubmit={handleReset} className="space-y-4">
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium mb-1"
-              >
-                Nueva Contraseña
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-2 border rounded focus:ring-2 focus:ring-bg-secondary focus:outline-none"
-                required
-                minLength={6}
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-2 px-4 bg-bg-secondary text-white rounded hover:bg-opacity-90 transition-colors"
-            >
-              Actualizar Contraseña
-            </button>
-          </form>
         )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium mb-1">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-bg-secondary focus:outline-none"
+              placeholder="tu@email.com"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className={`w-full py-2 px-4 bg-bg-secondary text-white rounded hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2
+              ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+          >
+            <HiMail className="w-5 h-5" />
+            {loading ? "Enviando..." : "Enviar email de recuperación"}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <button
+            onClick={() => router.push("/admin/login")}
+            className="text-bg-secondary hover:underline flex items-center gap-1 mx-auto"
+          >
+            <HiArrowLeft className="w-4 h-4" />
+            Volver al login
+          </button>
+        </div>
       </div>
     </main>
   );

@@ -8,10 +8,12 @@ interface CallsContent {
   id?: string;
   is_active: boolean;
   deadline: string;
+  feria_date?: string;
   location: string;
   form_link: string;
   title: string;
   description: string;
+  horario?: string;
   created_at?: string;
 }
 
@@ -20,10 +22,12 @@ export default function CallsPage() {
     id: undefined,
     is_active: true,
     deadline: "",
+    feria_date: "",
     location: "",
     form_link: "",
     title: "Convocatoria Abierta",
     description: "¡Participa en la próxima edición de la Feria de Fotografía!",
+    horario: "",
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -35,10 +39,36 @@ export default function CallsPage() {
 
   const loadCallsContent = async () => {
     try {
-      const { data, error } = await supabase.from("calls").select("*").single();
+      // Obtener el registro más reciente en lugar de usar .single()
+      const { data, error } = await supabase
+        .from("calls")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
 
-      if (error) throw error;
-      if (data) {
+      if (error) {
+        // Si no hay registros, usar valores por defecto
+        if (error.code === "PGRST116") {
+          console.log(
+            "No hay convocatorias existentes, usando valores por defecto"
+          );
+          setContent({
+            id: undefined,
+            is_active: false,
+            deadline: "",
+            feria_date: "",
+            location: "",
+            form_link: "",
+            title: "Convocatoria Abierta",
+            description:
+              "¡Participa en la próxima edición de la Feria de Fotografía!",
+            horario: "",
+          });
+        } else {
+          throw error;
+        }
+      } else if (data) {
         console.log("Datos cargados:", data);
         setContent({
           ...data,
@@ -47,6 +77,19 @@ export default function CallsPage() {
       }
     } catch (error) {
       console.error("Error cargando contenido:", error);
+      // En caso de error, usar valores por defecto
+      setContent({
+        id: undefined,
+        is_active: false,
+        deadline: "",
+        feria_date: "",
+        location: "",
+        form_link: "",
+        title: "Convocatoria Abierta",
+        description:
+          "¡Participa en la próxima edición de la Feria de Fotografía!",
+        horario: "",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -55,14 +98,17 @@ export default function CallsPage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      // Preparar datos para guardar, manejando fechas vacías
       const dataToSave = {
         id: content.id,
         is_active: Boolean(content.is_active),
-        deadline: content.deadline,
+        deadline: content.deadline || null, // Si la fecha está vacía, usar null
+        feria_date: content.feria_date || null,
         location: content.location || null,
-        form_link: content.form_link,
+        form_link: content.form_link || "",
         title: content.title,
         description: content.description,
+        horario: content.horario || null,
       };
 
       console.log("Estado actual:", content);
@@ -146,16 +192,32 @@ export default function CallsPage() {
             />
           </div>
 
-          {/* Fecha límite */}
+          {/* Fecha límite de inscripción */}
           <div className="mb-6">
             <label className="block text-sm font-medium mb-2">
-              Fecha límite
+              Fecha límite de inscripción
             </label>
             <input
               type="date"
               value={content.deadline}
               onChange={(e) => {
                 setContent({ ...content, deadline: e.target.value });
+                setHasUnsavedChanges(true);
+              }}
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
+            />
+          </div>
+
+          {/* Fecha de la feria */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">
+              Fecha de la feria
+            </label>
+            <input
+              type="date"
+              value={content.feria_date}
+              onChange={(e) => {
+                setContent({ ...content, feria_date: e.target.value });
                 setHasUnsavedChanges(true);
               }}
               className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
@@ -172,6 +234,23 @@ export default function CallsPage() {
                 setContent({ ...content, location: e.target.value });
                 setHasUnsavedChanges(true);
               }}
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
+            />
+          </div>
+
+          {/* Horario */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">
+              Horario de la feria
+            </label>
+            <input
+              type="text"
+              value={content.horario}
+              onChange={(e) => {
+                setContent({ ...content, horario: e.target.value });
+                setHasUnsavedChanges(true);
+              }}
+              placeholder="Ej: 10:00 - 18:00 hs"
               className="w-full p-2 border rounded focus:ring-2 focus:ring-accent-blue focus:outline-none"
             />
           </div>
@@ -204,16 +283,31 @@ export default function CallsPage() {
                 <h3 className="text-2xl font-bevietnam font-bold mb-4 text-bg-secondary">
                   {content.title}
                 </h3>
-                <p className="text-text-primary font-bevietnam font-normal mb-6">
-                  {content.description}
-                </p>
+                <div
+                  className="text-text-primary font-bevietnam font-normal mb-6"
+                  dangerouslySetInnerHTML={{
+                    __html: content.description,
+                  }}
+                />
                 <div className="space-y-4">
                   <p className="font-bevietnam font-thin italic">
-                    Fecha límite:{" "}
+                    Fecha límite de inscripción:{" "}
                     <span className="font-bevietnam italic">{content.deadline}</span>
                   </p>
                   <p className="font-bevietnam font-thin italic">
+                    Fecha de la feria:{" "}
+                    <span className="font-bevietnam italic">
+                      {content.feria_date || "Por confirmar"}
+                    </span>
+                  </p>
+                  <p className="font-bevietnam font-thin italic">
                     Lugar: <span className="text-thin">{content.location}</span>
+                  </p>
+                  <p className="font-bevietnam font-thin italic">
+                    Horario:{" "}
+                    <span className="font-bevietnam italic">
+                      {content.horario || "Por confirmar"}
+                    </span>
                   </p>
                 </div>
                 <a
@@ -229,12 +323,11 @@ export default function CallsPage() {
             ) : (
               <div className="bg-bg-primary rounded-lg p-8">
                 <p className="text-text-primary text-center text-lg font-bevietnam font-normal">
-                  No hay convocatorias abiertas en este momento.
-                  <br />
-                  <span className="font-bevietnam italic">
-                    ¡Mantente atento a nuestras redes sociales para futuras
-                    convocatorias!
-                  </span>
+                  La convocatoria está cerrada.
+                </p>
+                <p className="font-bevietnam italic text-accent-blue mt-4 text-center">
+                  ¡Te esperamos en la feria para disfrutar de todas las
+                  actividades!
                 </p>
               </div>
             )}
